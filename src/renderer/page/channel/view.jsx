@@ -67,22 +67,23 @@ class ChannelPage extends React.PureComponent<Props> {
     const { fetching, claimsInChannel, claim, page, totalPages } = this.props;
     const { name, permanent_url: permanentUrl, claim_id: claimId } = claim;
     const currentPage = parseInt((page || 1) - 1, 10);
-    let contentList;
-    if (fetching) {
-      contentList = <BusyIndicator message={__('Fetching content')} />;
-    } else {
-      contentList =
-        claimsInChannel && claimsInChannel.length ? (
-          <FileList sortByHeight hideFilter fileInfos={claimsInChannel} />
-        ) : (
-          <span className="empty">{__('No content found.')}</span>
-        );
-    }
+
+    const contentList =
+      claimsInChannel && claimsInChannel.length ? (
+        <FileList sortByHeight hideFilter fileInfos={claimsInChannel} />
+      ) : !fetching ? (
+        <span className="empty">{__('No content found.')}</span>
+      ) : (
+        null
+      );
 
     return (
       <Page notContained>
         <section className="card__channel-info card__channel-info--large">
-          <h1>{name}</h1>
+          <h1>
+            {name}
+            {fetching ? <BusyIndicator /> : null}
+          </h1>
           <div className="card__actions card__actions--no-margin">
             <SubscribeButton uri={permanentUrl} channelName={name} />
             <ViewOnWebButton claimId={claimId} claimName={name} />
