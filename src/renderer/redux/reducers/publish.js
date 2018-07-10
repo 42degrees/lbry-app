@@ -2,6 +2,7 @@
 import { handleActions } from 'util/redux-utils';
 import { buildURI } from 'lbry-redux';
 import * as ACTIONS from 'constants/action_types';
+import * as THUMBNAIL_STATUSES from 'constants/thumbnail_upload_statuses';
 import { CHANNEL_ANONYMOUS } from 'constants/claim';
 
 type PublishState = {
@@ -14,6 +15,8 @@ type PublishState = {
   },
   title: string,
   thumbnail: string,
+  thumbnailPath: string,
+  uploadThumbnailStatus: string,
   description: string,
   language: string,
   tosAccepted: boolean,
@@ -38,6 +41,8 @@ export type UpdatePublishFormData = {
   },
   title?: string,
   thumbnail?: string,
+  uploadThumbnailStatus?: string,
+  thumbnailPath?: string,
   description?: string,
   language?: string,
   tosAccepted?: boolean,
@@ -96,6 +101,8 @@ const defaultState: PublishState = {
   },
   title: '',
   thumbnail: '',
+  thumbnailPath: '',
+  uploadThumbnailStatus: THUMBNAIL_STATUSES.API_DOWN,
   description: '',
   language: 'en',
   nsfw: false,
@@ -140,12 +147,9 @@ export default handleActions(
     [ACTIONS.PUBLISH_SUCCESS]: (state: PublishState, action): PublishState => {
       const { pendingPublish } = action.data;
 
-      // If it's an edit, don't create a pending publish
-      // It will take some more work to know when an edit is confirmed
       const newPendingPublishes = state.pendingPublishes.slice();
-      if (!pendingPublish.isEdit) {
-        newPendingPublishes.push(pendingPublish);
-      }
+
+      newPendingPublishes.push(pendingPublish);
 
       return {
         ...state,
@@ -162,18 +166,23 @@ export default handleActions(
       };
     },
     [ACTIONS.DO_PREPARE_EDIT]: (state: PublishState, action) => {
+      const { pendingPublishes } = state;
       const { ...publishData } = action.data;
-      const { channel, name } = publishData;
+      const { channel, name, uri } = publishData;
 
-      const uri = buildURI({
+      // The short uri is what is presented to the user
+      // The editingUri is the full uri with claim id
+      const shortUri = buildURI({
         channelName: channel,
         contentName: name,
       });
 
       return {
         ...defaultState,
-        editingURI: uri,
         ...publishData,
+        pendingPublishes,
+        editingURI: uri,
+        uri: shortUri,
       };
     },
   },

@@ -1,13 +1,12 @@
 // @flow
 import * as React from 'react';
-import { Lbry, buildURI, normalizeURI, MODALS } from 'lbry-redux';
-import Video from 'component/video';
+import { buildURI, normalizeURI, MODALS } from 'lbry-redux';
+import FileViewer from 'component/fileViewer';
 import Thumbnail from 'component/common/thumbnail';
 import FilePrice from 'component/filePrice';
 import FileDetails from 'component/fileDetails';
 import FileActions from 'component/fileActions';
 import UriIndicator from 'component/uriIndicator';
-import { FormField, FormRow } from 'component/common/form';
 import Icon from 'component/common/icon';
 import DateTime from 'component/dateTime';
 import * as icons from 'constants/icons';
@@ -15,11 +14,14 @@ import Button from 'component/button';
 import SubscribeButton from 'component/subscribeButton';
 import ViewOnWebButton from 'component/viewOnWebButton';
 import Page from 'component/page';
-import player from 'render-media';
 import * as settings from 'constants/settings';
 import type { Claim } from 'types/claim';
 import type { Subscription } from 'types/subscription';
 import FileDownloadLink from 'component/fileDownloadLink';
+import classnames from 'classnames';
+import { FormField, FormRow } from 'component/common/form';
+import ToolTip from 'component/common/tooltip';
+import getMediaType from 'util/getMediaType';
 
 type Props = {
   claim: Claim,
@@ -27,6 +29,7 @@ type Props = {
   metadata: {
     title: string,
     thumbnail: string,
+    file_name: string,
     nsfw: boolean,
   },
   contentType: string,
@@ -47,6 +50,18 @@ type Props = {
 };
 
 class FilePage extends React.Component<Props> {
+  static PLAYABLE_MEDIA_TYPES = ['audio', 'video'];
+  static PREVIEW_MEDIA_TYPES = [
+    'text',
+    'model',
+    'image',
+    '3D-file',
+    'document',
+    // Bypass unplayable files
+    // TODO: Find a better way to detect supported types
+    'application',
+  ];
+
   constructor(props: Props) {
     super(props);
 
@@ -54,15 +69,14 @@ class FilePage extends React.Component<Props> {
   }
 
   componentDidMount() {
-    const { uri, fileInfo, fetchFileInfo, costInfo, fetchCostInfo } = this.props;
+    const { uri, fileInfo, fetchFileInfo, fetchCostInfo } = this.props;
 
     if (fileInfo === undefined) {
       fetchFileInfo(uri);
     }
 
-    if (costInfo === undefined) {
-      fetchCostInfo(uri);
-    }
+    // See https://github.com/lbryio/lbry-app/pull/1563 for discussion
+    fetchCostInfo(uri);
 
     this.checkSubscription(this.props);
   }
@@ -107,16 +121,19 @@ class FilePage extends React.Component<Props> {
       navigate,
       autoplay,
       costInfo,
+      fileInfo,
     } = this.props;
 
     // File info
     const { title, thumbnail } = metadata;
+    const { height, channel_name: channelName, value } = claim;
+    const { PLAYABLE_MEDIA_TYPES, PREVIEW_MEDIA_TYPES } = FilePage;
     const isRewardContent = rewardedContentClaimIds.includes(claim.claim_id);
     const shouldObscureThumbnail = obscureNsfw && metadata.nsfw;
-    const { height, channel_name: channelName, value } = claim;
-    const mediaType = Lbry.getMediaType(contentType);
-    const isPlayable =
-      Object.values(player.mime).indexOf(contentType) !== -1 || mediaType === 'audio';
+    const fileName = fileInfo ? fileInfo.file_name : null;
+    const mediaType = getMediaType(contentType, fileName);
+    const showFile =
+      PLAYABLE_MEDIA_TYPES.includes(mediaType) || PREVIEW_MEDIA_TYPES.includes(mediaType);
     const channelClaimId =
       value && value.publisherSignature && value.publisherSignature.certificateId;
     let subscriptionUri;
@@ -134,7 +151,12 @@ class FilePage extends React.Component<Props> {
     // We will select the claim id before they publish
     let editUri;
     if (claimIsMine) {
-      editUri = buildURI({ channelName, contentName: claim.name });
+      const uriObject = { contentName: claim.name, claimId: claim.claim_id };
+      if (channelName) {
+        uriObject.channelName = channelName;
+      }
+
+      editUri = buildURI(uriObject);
     }
 
     return (
@@ -145,19 +167,31 @@ class FilePage extends React.Component<Props> {
           </section>
         ) : (
           <section className="card">
-            {isPlayable ? (
-              <Video className="content__embedded" uri={uri} />
-            ) : (
-              <Thumbnail shouldObscure={shouldObscureThumbnail} src={thumbnail} />
+            {showFile && (
+              <FileViewer className="content__embedded" uri={uri} mediaType={mediaType} />
             )}
+            {!showFile &&
+              (thumbnail ? (
+                <Thumbnail shouldObscure={shouldObscureThumbnail} src={thumbnail} />
+              ) : (
+                <div
+                  className={classnames('content__empty', {
+                    'content__empty--nsfw': shouldObscureThumbnail,
+                  })}
+                >
+                  <div className="card__media-text">
+                    {__("Sorry, looks like we can't preview this file.")}
+                  </div>
+                </div>
+              ))}
             <div className="card__content">
               <div className="card__title-identity--file">
                 <h1 className="card__title card__title--file">{title}</h1>
                 <div className="card__title-identity-icons">
-                  <FilePrice uri={normalizeURI(uri)} />
                   {isRewardContent && (
                     <Icon iconColor="red" tooltip="bottom" icon={icons.FEATURED} />
                   )}
+                  <FilePrice uri={normalizeURI(uri)} />
                 </div>
               </div>
               <span className="card__subtitle card__subtitle--file">
@@ -167,55 +201,55 @@ class FilePage extends React.Component<Props> {
               {metadata.nsfw && <div>NSFW</div>}
               <div className="card__channel-info">
                 <UriIndicator uri={uri} link />
-
-                <div className="card__actions card__actions--no-margin">
-                  {claimIsMine ? (
-                    <Button
-                      button="primary"
-                      icon={icons.EDIT}
-                      label={__('Edit')}
-                      onClick={() => {
-                        prepareEdit(claim, editUri);
-                        navigate('/publish');
-                      }}
-                    />
-                  ) : (
-                    <React.Fragment>
+              </div>
+              <div className="card__actions card__actions--no-margin card__actions--between">
+                {(!claimIsMine || subscriptionUri || speechSharable) && (
+                  <div className="card__actions">
+                    {claimIsMine ? (
+                      <Button
+                        button="primary"
+                        icon={icons.EDIT}
+                        label={__('Edit')}
+                        onClick={() => {
+                          prepareEdit(claim, editUri);
+                          navigate('/publish');
+                        }}
+                      />
+                    ) : (
+                      <SubscribeButton uri={subscriptionUri} channelName={channelName} />
+                    )}
+                    {!claimIsMine && (
                       <Button
                         button="alt"
-                        iconRight="Send"
+                        icon={icons.GIFT}
                         label={__('Enjoy this? Send a tip')}
                         onClick={() => openModal({ id: MODALS.SEND_TIP }, { uri })}
                       />
-                      <SubscribeButton uri={subscriptionUri} channelName={channelName} />
-                    </React.Fragment>
-                  )}
-                  {speechSharable && (
-                    <ViewOnWebButton
-                      uri={buildURI({
-                        claimId: claim.claim_id,
-                        contentName: claim.name,
-                      }).slice(7)}
-                    />
-                  )}
+                    )}
+                    {speechSharable && (
+                      <ViewOnWebButton claimId={claim.claim_id} claimName={claim.name} />
+                    )}
+                  </div>
+                )}
+
+                <div className="card__actions">
+                  <FileDownloadLink uri={uri} />
+                  <FileActions uri={uri} claimId={claim.claim_id} />
                 </div>
               </div>
-              <FormRow alignRight>
-                <FormField
-                  type="checkbox"
-                  name="autoplay"
-                  onChange={this.onAutoplayChange}
-                  checked={autoplay}
-                  postfix={__('Autoplay')}
-                />
+              <FormRow padded>
+                <ToolTip onComponent body={__('Automatically download and play free content.')}>
+                  <FormField
+                    useToggle
+                    name="autoplay"
+                    type="checkbox"
+                    postfix={__('Autoplay')}
+                    checked={autoplay}
+                    onChange={this.onAutoplayChange}
+                  />
+                </ToolTip>
               </FormRow>
             </div>
-
-            <div className="card__content">
-              <FileDownloadLink uri={uri} />
-              <FileActions uri={uri} claimId={claim.claim_id} />
-            </div>
-
             <div className="card__content--extra-padding">
               <FileDetails uri={uri} />
             </div>

@@ -9,6 +9,8 @@ type Props = {
   type: string,
   currentPath: ?string,
   onFileChosen: (string, string) => void,
+  fileLabel: ?string,
+  directoryLabel?: string,
 };
 
 class FileSelector extends React.PureComponent<Props> {
@@ -23,6 +25,7 @@ class FileSelector extends React.PureComponent<Props> {
 
   handleButtonClick() {
     remote.dialog.showOpenDialog(
+      remote.getCurrentWindow(),
       {
         properties:
           this.props.type === 'file' ? ['openFile'] : ['openDirectory', 'createDirectory'],
@@ -47,15 +50,14 @@ class FileSelector extends React.PureComponent<Props> {
   input: ?HTMLInputElement;
 
   render() {
-    const { type, currentPath } = this.props;
+    const { type, currentPath, fileLabel, directoryLabel } = this.props;
+
+    const label =
+      type === 'file' ? fileLabel || __('Choose File') : directoryLabel || __('Choose Directory');
 
     return (
       <FormRow verticallyCentered padded>
-        <Button
-          button="primary"
-          onClick={() => this.handleButtonClick()}
-          label={type === 'file' ? __('Choose File') : __('Choose Directory')}
-        />
+        <Button button="primary" onClick={() => this.handleButtonClick()} label={label} />
         <input
           webkitdirectory="true"
           className="input-copyable"

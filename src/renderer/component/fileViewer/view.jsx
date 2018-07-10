@@ -1,11 +1,10 @@
 // @flow
 import React from 'react';
-import { Lbry } from 'lbry-redux';
 import classnames from 'classnames';
 import type { Claim } from 'types/claim';
-import VideoPlayer from './internal/player';
-import VideoPlayButton from './internal/play-button';
-import LoadingScreen from './internal/loading-screen';
+import LoadingScreen from 'component/common/loading-screen';
+import Player from './internal/player';
+import PlayButton from './internal/play-button';
 
 const SPACE_BAR_KEYCODE = 32;
 
@@ -40,9 +39,10 @@ type Props = {
   obscureNsfw: boolean,
   play: string => void,
   searchBarFocused: boolean,
+  mediaType: string,
 };
 
-class Video extends React.PureComponent<Props> {
+class FileViewer extends React.PureComponent<Props> {
   constructor() {
     super();
 
@@ -80,22 +80,11 @@ class Video extends React.PureComponent<Props> {
   }
 
   handleAutoplay = (props: Props) => {
-    const {
-      autoplay,
-      playingUri,
-      fileInfo,
-      costInfo,
-      isDownloading,
-      uri,
-      load,
-      play,
-      metadata,
-    } = props;
+    const { autoplay, playingUri, fileInfo, costInfo, isDownloading, uri, play, metadata } = props;
 
     const playable = autoplay && playingUri !== uri && metadata && !metadata.nsfw;
 
     if (playable && costInfo && costInfo.cost === 0 && !fileInfo && !isDownloading) {
-      load(uri);
       play(uri);
     } else if (playable && fileInfo && fileInfo.blobs_completed > 0) {
       play(uri);
@@ -134,12 +123,12 @@ class Video extends React.PureComponent<Props> {
       mediaPosition,
       className,
       obscureNsfw,
+      mediaType,
     } = this.props;
 
     const isPlaying = playingUri === uri;
     const isReadyToPlay = fileInfo && fileInfo.written_bytes > 0;
     const shouldObscureNsfw = obscureNsfw && metadata && metadata.nsfw;
-    const mediaType = Lbry.getMediaType(contentType, fileInfo && fileInfo.file_name);
 
     let loadStatusMessage = '';
 
@@ -167,7 +156,7 @@ class Video extends React.PureComponent<Props> {
                 <LoadingScreen status={loadStatusMessage} />
               </div>
             ) : (
-              <VideoPlayer
+              <Player
                 filename={fileInfo.file_name}
                 poster={poster}
                 downloadPath={fileInfo.download_path}
@@ -194,7 +183,7 @@ class Video extends React.PureComponent<Props> {
             className={layoverClass}
             style={layoverStyle}
           >
-            <VideoPlayButton
+            <PlayButton
               play={e => {
                 e.stopPropagation();
                 this.playContent();
@@ -211,4 +200,4 @@ class Video extends React.PureComponent<Props> {
   }
 }
 
-export default Video;
+export default FileViewer;

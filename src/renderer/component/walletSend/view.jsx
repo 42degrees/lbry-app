@@ -56,17 +56,22 @@ class WalletSend extends React.PureComponent<Props> {
                     label={__('Amount')}
                     postfix={__('LBC')}
                     className="input--price-amount"
+                    affixClass="form-field--fix-no-height"
                     min="0"
                     step="any"
+                    placeholder="12.34"
                     onChange={handleChange}
                     onBlur={handleBlur}
                     value={values.amount}
                     error={
                       (!!values.amount && touched.amount && errors.amount) ||
-                      (values.amount > balance && __('Not enough'))
+                      (values.amount === balance &&
+                        __('Decrease amount to account for transaction fee')) ||
+                      (values.amount > balance && __('Not enough credits'))
                     }
                   />
-
+                </FormRow>
+                <FormRow padded>
                   <FormField
                     type="text"
                     name="address"
@@ -87,7 +92,8 @@ class WalletSend extends React.PureComponent<Props> {
                     disabled={
                       !values.address ||
                       !!Object.keys(errors).length ||
-                      !(parseFloat(values.amount) > 0.0)
+                      !(parseFloat(values.amount) > 0.0) ||
+                      parseFloat(values.amount) === balance
                     }
                   />
                 </div>

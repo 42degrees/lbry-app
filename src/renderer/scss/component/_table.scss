@@ -1,5 +1,4 @@
 table.table,
-.editor-preview table,
 .markdown-preview table {
   word-wrap: break-word;
   max-width: 100%;
@@ -80,6 +79,14 @@ table.table--help {
     color: var(--text-color);
     font-family: 'metropolis-semibold';
     min-width: 130px;
+  }
+  td:nth-of-type(2) {
+    /*Tourniquets text over 20VW*/
+    max-width: 20vw;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    color: var(--color-help);
   }
 }
 

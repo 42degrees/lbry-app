@@ -6,51 +6,122 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/).
 ## [Unreleased]
 
 ### Added
-   * Add keyboard shortcut to quit the app on Windows ([#1202](https://github.com/lbryio/lbry-app/pull/1202))
-   * Build for both architectures (x86 and x64) for Windows ([#1262](https://github.com/lbryio/lbry-app/pull/1262))
-   * Add referral FAQ to Invites screen([#1314](https://github.com/lbryio/lbry-app/pull/1314))
-   * Show exact wallet balance on mouse hover over ([#1305](https://github.com/lbryio/lbry-app/pull/1305))
-   * New dark mode ([#1269](https://github.com/lbryio/lbry-app/pull/1269))
-   * Pre-fill publish URL after clicking "Put something here" link ([#1303](https://github.com/lbryio/lbry-app/pull/1303))
-   * Add Danger JS to automate code reviews ([#1289](https://github.com/lbryio/lbry-app/pull/1289))
-   * Autoplay downloaded and free media ([#584](https://github.com/lbryio/lbry-app/pull/1453))
-   * Add 'Go to page' input on channel pagination ([#1166](https://github.com/lbryio/lbry-app/pull/1166))
-   * Add "View on web" button on file/channel pages with spee.ch link ([#1222](https://github.com/lbryio/lbry-app/pull/1222))
 
-### Changed
-   * Add flair to snackbar ([#1313](https://github.com/lbryio/lbry-app/pull/1313))
-   * Made font in price badge larger ([#1420](https://github.com/lbryio/lbry-app/pull/1420))
-   * Store subscriptions in internal database ([#1424](https://github.com/lbryio/lbry-app/pull/1424))
-   * Move rewards logic to interal api ([#1509](https://github.com/lbryio/lbry-app/pull/1509))
 
 ### Fixed
-   * Fix content-type not shown correctly in file description ([#863](https://github.com/lbryio/lbry-app/pull/863))
+  * Take previous bid amount into account when determining how much users have available to deposit ([#1725](https://github.com/lbryio/lbry-app/pull/1725))
+  * Sidebar sizing on larger screens ([#1709](https://github.com/lbryio/lbry-app/pull/1709))
+  * Publishing scenario while editing and changing URI ([#1716](https://github.com/lbryio/lbry-app/pull/1716))
+  * Fix can't right click > paste into description on publish ([#1664](https://github.com/lbryio/lbry-app/issues/1664))
+  * Mac/Linux error when starting app up too quickly after shutdown ([#1727](https://github.com/lbryio/lbry-app/pull/1727))
+  * Console errors when multiple downloads for same claim exist ([#1724](https://github.com/lbryio/lbry-app/pull/1724))
+  * App version in dev mode ([#1722](https://github.com/lbryio/lbry-app/pull/1722))
+  * Long URI name displays in transaction list/Help ([#1694](https://github.com/lbryio/lbry-app/pull/1694))/([#1692](https://github.com/lbryio/lbry-app/pull/1692))
+  
+### Changed
+  * Show claim name, instead of URI, when loading a channel([#1711](https://github.com/lbryio/lbry-app/pull/1711))
+  * Updated LBRY daemon to 0.20.3 which contains some availability improvements ([v0.20.3](https://github.com/lbryio/lbry/releases/tag/v0.20.3))
+
+## [0.22.0] - 2018-06-26
+
+### Added
+   * Ability to upload thumbnails through spee.ch while publishing ([#1248](https://github.com/lbryio/lbry-app/pull/1248))
+   * QR code for wallet address to Send and Receive page ([#1582](https://github.com/lbryio/lbry-app/pull/1582))
+   * "View on Web" button on file/channel pages with spee.ch link ([#1222](https://github.com/lbryio/lbry-app/pull/1222))
+   * Autoplay downloaded and free media along with toggle ([#584](https://github.com/lbryio/lbry-app/pull/1453))
+   * Ability to get latest claims from channel on homepage (currently inactive) ([#1267](https://github.com/lbryio/lbry-app/pull/1267))
+   * Confirmation prompt when sending credits ([#1525](https://github.com/lbryio/lbry-app/pull/1525))
+   * Ability to right click > copy lbry:// hyperlink on tiles ([#1486](https://github.com/lbryio/lbry-app/pull/1486))
+   * Buttons to open log file and log directory on the help page ([#1556](https://github.com/lbryio/lbry-app/issues/1556))
+   * Ability to resend verification email ([#1492](https://github.com/lbryio/lbry-app/issues/1492))
+   * Keyboard shortcut to quit the app on Windows ([#1202](https://github.com/lbryio/lbry-app/pull/1202))
+   * Build for both architectures (x86 and x64) for Windows ([#1262](https://github.com/lbryio/lbry-app/pull/1262))
+   * Referral FAQ to Invites screen ([#1314](https://github.com/lbryio/lbry-app/pull/1314))
+   * Show exact wallet balance on mouse hover over ([#1305](https://github.com/lbryio/lbry-app/pull/1305))
+   * Pre-fill publish URL after clicking "Put something here" link ([#1303](https://github.com/lbryio/lbry-app/pull/1303))
+   * Danger JS to automate code reviews ([#1289](https://github.com/lbryio/lbry-app/pull/1289))
+   * 'Go to page' input on channel pagination ([#1166](https://github.com/lbryio/lbry-app/pull/1166))
+
+### Changed
+   * LBRY App UI Redesign 5.0 implemented including new theme, layout, and improved search mechanics ([#870](https://github.com/lbryio/lbry-app/pull/870)) and ([#1173](https://github.com/lbryio/lbry-app/pull/1173))
+   * Updated LBRY daemon to 0.20.2 which improves speed and reliability. ([v0.20.0](https://github.com/lbryio/lbry/releases/tag/v0.20.0), [v0.20.1](https://github.com/lbryio/lbry/releases/tag/v0.20.1), [v0.20.2](https://github.com/lbryio/lbry/releases/tag/v0.20.2))
+   * Adapted dark mode to redesign ([#1269](https://github.com/lbryio/lbry-app/pull/1269))
+   * Show latest claims for across all subscribed channel (no longer grouped by channel) and store sub data in internal database ([#1424](https://github.com/lbryio/lbry-app/pull/1424))
+   * New publishes now show as pending on Publishes screen ([#1040](https://github.com/lbryio/lbry-app/pull/1040))
+   * Enhanced flair to snackbar ([#1313](https://github.com/lbryio/lbry-app/pull/1313))
+   * Made font in price badge larger ([#1420](https://github.com/lbryio/lbry-app/pull/1420))
+   * Move rewards logic to interal api ([#1509](https://github.com/lbryio/lbry-app/pull/1509))
+   * Narrative about Feature Request on Help Page and Report Page ([#1551](https://github.com/lbryio/lbry-app/pull/1551))
+
+
+### Fixed
+   * Create channel and publish immediately([#1481](https://github.com/lbryio/lbry-app/pull/1481))
+   * Price not updated on tile/file page ([#797](https://github.com/lbryio/lbry-app/issues/797))
+   * Markdown rendering support on show page ([#1179](https://github.com/lbryio/lbry-app/issues/1179))
+   * Content address extending outside of visible area ([#741](https://github.com/lbryio/lbry-app/issues/741))
+   * Content-type not shown correctly in file description ([#863](https://github.com/lbryio/lbry-app/pull/863))
    * Fix [Flow](https://flow.org/) ([#1197](https://github.com/lbryio/lbry-app/pull/1197))
-   * Fix black screen on macOS after maximizing LBRY and then closing ([#1235](https://github.com/lbryio/lbry-app/pull/1235))
-   * Fix dark theme ([#1034](https://github.com/lbryio/lbry-app/issues/1034))
-   * Fix download percentage indicator overlay ([#1271](https://github.com/lbryio/lbry-app/issues/1271))
-   * Fix alternate row shading for transactions on dark theme ([#1355](https://github.com/lbryio/lbry-app/issues/#1355))
-   * Fix don't allow dark mode with automatic night mode enabled ([#1005](https://github.com/lbryio/lbry-app/issues/1005))
-   * Fix description box on Publish (dark theme) ([#1356](https://github.com/lbryio/lbry-app/issues/#1356))
-   * Fix price wrapping in price badge ([#1420](https://github.com/lbryio/lbry-app/pull/1420))
-   * Fix spacing in search suggestions ([#1422](https://github.com/lbryio/lbry-app/pull/1422))
-   * Fix text/HTML files don't display correctly in-app anymore ([#1379](https://github.com/lbryio/lbry-app/issues/1379))
-   * Fix notification modals when reward is claimed ([#1436](https://github.com/lbryio/lbry-app/issues/1436)) and ([#1407](https://github.com/lbryio/lbry-app/issues/1407))
-   * Fix disabled cards(grayed out) ([#1466](https://github.com/lbryio/lbry-app/issues/1466))
-   * Fix markdown render ([#1179](https://github.com/lbryio/lbry-app/issues/1179))
-   * Fix new lines not showing correctly after markdown changes ([#1504](https://github.com/lbryio/lbry-app/issues/1504))
-   * Fix claim ID being null when reporting a claim that was not previously download ([issue#1512](https://github.com/lbryio/lbry-app/issues/1512)) ([PR#1530](https://github.com/lbryio/lbry-app/pull/1530))
+   * Black screen on macOS after maximizing LBRY and then closing ([#1235](https://github.com/lbryio/lbry-app/pull/1235))
+   * Download percentage indicator overlay ([#1271](https://github.com/lbryio/lbry-app/issues/1271))
+   * Alternate row shading for transactions on dark theme ([#1355](https://github.com/lbryio/lbry-app/issues/#1355))
+   * Don't allow dark mode with automatic night mode enabled ([#1005](https://github.com/lbryio/lbry-app/issues/1005))
+   * Description box on Publish (dark theme) ([#1356](https://github.com/lbryio/lbry-app/issues/#1356))
+   * Price wrapping in price badge ([#1420](https://github.com/lbryio/lbry-app/pull/1420))
+   * Spacing in search suggestions ([#1422](https://github.com/lbryio/lbry-app/pull/1422))
+   * Text/HTML files don't display correctly in-app anymore ([#1379](https://github.com/lbryio/lbry-app/issues/1379))
+   * Notification modals when reward is claimed ([#1436](https://github.com/lbryio/lbry-app/issues/1436)) and ([#1407](https://github.com/lbryio/lbry-app/issues/1407))
+   * Disabled cards(grayed out) ([#1466](https://github.com/lbryio/lbry-app/issues/1466))
+   * New lines not showing correctly after markdown changes ([#1504](https://github.com/lbryio/lbry-app/issues/1504))
+   * Claim ID being null when reporting a claim that was not previously downloaded ([PR#1530](https://github.com/lbryio/lbry-app/pull/1530))
+   * URI and outpoint not being passed properly to API ([#1494](https://github.com/lbryio/lbry-app/issues/1494))
+   * Incorrect markdown preview on url with parentheses ([#1570](https://github.com/lbryio/lbry-app/issues/1570))
+   * Fix Linux upgrade path and add manual installation note ([#1606](https://github.com/lbryio/lbry-app/issues/1606))
+   * Fix can type in unfocused fields while publishing without selecting file ([#1456](https://github.com/lbryio/lbry-app/issues/1456))
+   * Fix navigation button resulting incorrect page designation ([#1502](https://github.com/lbryio/lbry-app/issues/1502))
+   * Fix shouldn't allow to open multiple export and choose file dialogs ([#1175](https://github.com/lbryio/lbry-app/issues/1175))
+
+
+
+## [0.21.6] - 2018-06-05
+
+### Fixed
+ * Fix page URLs on app cold start ([#1549](https://github.com/lbryio/lbry-app/issues/1549))
+ * Fix analytics event ([#1494](https://github.com/lbryio/lbry-app/issues/1494))
+
+
+
+## [0.21.5] - 2018-05-31
+
+### Added
+  * Ability to navigate to in-app pages via URL ([#1352](https://github.com/lbryio/lbry-app/issues/1352))
+
+### Fixed
+ * Fixed green screen on invalid URL via hyperlink ([#959](https://github.com/lbryio/lbry-app/issues/959))
+ * Fixed crash when lbry-app repository is renamed to lbry-desktop ([#1505](https://github.com/lbryio/lbry-app/issues/1505))
+ * Fixed rewards not disappearing after claiming ([596](https://github.com/lbryio/lbry-app/issues/596))
+
+### Changed
+ * Rewards now rely on API data ([#1329](https://github.com/lbryio/lbry-app/issues/1329))
+
+
+
+## [0.21.4] - 2018-05-10
+
+### Changed
+  * Update LBRY Protocol to 0.19.3 - faster blockchain header download for new and existing users (See fulll change log for [0.19.2](https://github.com/lbryio/lbry/releases/tag/v0.19.2) and [0.19.3](https://github.com/lbryio/lbry/releases/tag/v0.19.3))
+
+### Fixed
+ * Ability to submit bug reports
+
 
 
 ## [0.21.3] - 2018-04-23
-
 
 ### Added
  * Block blacklisted content ([#1361](https://github.com/lbryio/lbry-app/pull/1361))
 
 
 ## [0.21.2] - 2018-03-22
-
 
 ### Added
   * Save app state when closing to tray ([#968](https://github.com/lbryio/lbry-app/issues/968))

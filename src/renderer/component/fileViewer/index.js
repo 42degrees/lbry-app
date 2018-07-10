@@ -2,7 +2,7 @@ import { connect } from 'react-redux';
 import * as settings from 'constants/settings';
 import { doChangeVolume } from 'redux/actions/app';
 import { selectVolume } from 'redux/selectors/app';
-import { doPlayUri, doSetPlayingUri, doLoadVideo } from 'redux/actions/content';
+import { doPlayUri, doSetPlayingUri } from 'redux/actions/content';
 import { doPlay, doPause, savePosition } from 'redux/actions/media';
 import {
   makeSelectMetadataForUri,
@@ -17,7 +17,7 @@ import {
 import { makeSelectClientSetting, selectShowNsfw } from 'redux/selectors/settings';
 import { selectMediaPaused, makeSelectMediaPositionForUri } from 'redux/selectors/media';
 import { selectPlayingUri } from 'redux/selectors/content';
-import Video from './view';
+import FileViewer from './view';
 
 const select = (state, props) => ({
   claim: makeSelectClaimForUri(props.uri)(state),
@@ -38,7 +38,6 @@ const select = (state, props) => ({
 
 const perform = dispatch => ({
   play: uri => dispatch(doPlayUri(uri)),
-  load: uri => dispatch(doLoadVideo(uri)),
   cancelPlay: () => dispatch(doSetPlayingUri(null)),
   changeVolume: volume => dispatch(doChangeVolume(volume)),
   doPlay: () => dispatch(doPlay()),
@@ -46,4 +45,7 @@ const perform = dispatch => ({
   savePosition: (claimId, position) => dispatch(savePosition(claimId, position)),
 });
 
-export default connect(select, perform)(Video);
+export default connect(
+  select,
+  perform
+)(FileViewer);

@@ -1,8 +1,12 @@
 // @flow
 import * as React from 'react';
+import ReactDOMServer from 'react-dom/server';
 import classnames from 'classnames';
+import MarkdownPreview from 'component/common/markdown-preview';
 import SimpleMDE from 'react-simplemde-editor';
-import style from 'react-simplemde-editor/dist/simplemde.min.css'; // eslint-disable-line no-unused-vars
+import 'simplemde/dist/simplemde.min.css';
+import Toggle from 'react-toggle';
+import { openEditorMenu } from 'util/contextMenu';
 
 type Props = {
   name: string,
@@ -18,6 +22,8 @@ type Props = {
   placeholder?: string | number,
   children?: React.Node,
   stretch?: boolean,
+  affixClass?: string, // class applied to prefix/postfix label
+  useToggle?: boolean,
 };
 
 export class FormField extends React.PureComponent<Props> {
@@ -33,6 +39,8 @@ export class FormField extends React.PureComponent<Props> {
       type,
       children,
       stretch,
+      affixClass,
+      useToggle,
       ...inputProps
     } = this.props;
 
@@ -47,17 +55,35 @@ export class FormField extends React.PureComponent<Props> {
           </select>
         );
       } else if (type === 'markdown') {
+        const stopContextMenu = event => {
+          event.preventDefault();
+          event.stopPropagation();
+        };
+        const handleEvents = {
+          contextmenu(codeMirror, event) {
+            openEditorMenu(event, codeMirror);
+          },
+        };
         input = (
-          <div className="form-field--SimpleMDE">
+          <div className="form-field--SimpleMDE" onContextMenu={stopContextMenu}>
             <SimpleMDE
               {...inputProps}
               type="textarea"
-              options={{ hideIcons: ['heading', 'image', 'fullscreen', 'side-by-side'] }}
+              events={handleEvents}
+              options={{
+                hideIcons: ['heading', 'image', 'fullscreen', 'side-by-side'],
+                previewRender(plainText) {
+                  const preview = <MarkdownPreview content={plainText} />;
+                  return ReactDOMServer.renderToString(preview);
+                },
+              }}
             />
           </div>
         );
       } else if (type === 'textarea') {
         input = <textarea type={type} id={name} {...inputProps} />;
+      } else if (type === 'checkbox' && useToggle) {
+        input = <Toggle id={name} {...inputProps} />;
       } else {
         input = <input type={type} id={name} {...inputProps} />;
       }
@@ -67,6 +93,7 @@ export class FormField extends React.PureComponent<Props> {
       <div
         className={classnames('form-field', {
           'form-field--stretch': stretch || type === 'markdown',
+          'form-field--disabled': inputProps.disabled,
         })}
       >
         {(label || errorMessage) && (
@@ -84,22 +111,18 @@ export class FormField extends React.PureComponent<Props> {
           })}
         >
           {prefix && (
-            <label htmlFor={name} className="form-field__prefix">
+            <label htmlFor={name} className={classnames('form-field__prefix', affixClass)}>
               {prefix}
             </label>
           )}
           {input}
           {postfix && (
-            <label htmlFor={name} className="form-field__postfix">
+            <label htmlFor={name} className={classnames('form-field__postfix', affixClass)}>
               {postfix}
             </label>
           )}
         </div>
-        {helper && (
-          <label htmlFor={name} className="form-field__help">
-            {helper}
-          </label>
-        )}
+        {helper && <div className="form-field__help">{helper}</div>}
       </div>
     );
   }

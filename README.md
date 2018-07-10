@@ -10,7 +10,7 @@ The LBRY app is a graphical browser for the decentralized content marketplace pr
 [lbry daemon](https://github.com/lbryio/lbry) bundled with an UI using
 [Electron](http://electron.atom.io/).
 
-![App screenshot](https://lbry.io/img/lbry-ui.png)
+![App GIF](https://spee.ch/7/lbry-redesign-preview.gif)
 
 ## Install
 
@@ -24,6 +24,8 @@ We provide installers for Windows, macOS (v10.9 or greater), and Debian-based Li
 Our [releases page](https://github.com/lbryio/lbry-app/releases) also contains the latest
 release, pre-releases, and past builds.
 
+*Note: If the deb fails to install using the Ubuntu Software Center, install manually via `sudo dpkg -i <path to deb>`. You'll need to run `sudo apt-get install -f` if this is the first time installing it to install dependencies*
+  
 To install from source or make changes to the application, continue reading below.
 
 ## Usage
@@ -34,9 +36,9 @@ Double click the installed application to browse with the LBRY network.
 #### Prerequisites
 
 * [Git](https://git-scm.com/downloads)
-* [Node.js](https://nodejs.org/en/download/)
+* [Node.js](https://nodejs.org/en/download/) (Use Node v8 if having trouble with keytar)
 * [Yarn](https://yarnpkg.com/en/docs/install)
-* [C++ Build Tools](https://github.com/felixrieseberg/windows-build-tools) (Windows only)
+* [C++ Build Tools](https://github.com/felixrieseberg/windows-build-tools) (Windows only, only install if having trouble with keytar)
 
 #### Steps
 
@@ -66,4 +68,4 @@ We take security seriously. Please contact security@lbry.io regarding any securi
 
 ## Contact
 
-The primary contact for this project is [@seanyesmunt](https://github.com/@seanyesmunt)
+The primary contact for this project is [@seanyesmunt](https://github.com/seanyesmunt)

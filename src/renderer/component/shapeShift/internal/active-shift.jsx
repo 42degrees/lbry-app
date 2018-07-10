@@ -56,7 +56,7 @@ class ActiveShapeShift extends React.PureComponent<Props> {
     }
   }
 
-  continousFetch: ?number;
+  continousFetch: ?IntervalID;
 
   render() {
     const {
@@ -131,16 +131,14 @@ class ActiveShapeShift extends React.PureComponent<Props> {
               href={`https://shapeshift.io/#/status/${shiftOrderId}`}
             />
           )}
-          {shiftState === statuses.NO_DEPOSITS &&
-            shiftReturnAddress && (
-              <div className="shapeshift__actions-help">
-                <span className="help">
-                  If the transaction doesn't go through, ShapeShift will return your {shiftCoinType}{' '}
-                  back to {shiftReturnAddress}
-                </span>
-              </div>
-            )}
         </div>
+        {shiftState === statuses.NO_DEPOSITS &&
+          shiftReturnAddress && (
+            <div className="help">
+              {__("If the transaction doesn't go through, ShapeShift will return your")}{' '}
+              {shiftCoinType} {__('back to')} {shiftReturnAddress}
+            </div>
+          )}
       </div>
     );
   }

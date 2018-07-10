@@ -20,14 +20,13 @@ type DaemonSettings = {
 
 type Props = {
   setDaemonSetting: (string, boolean | string | Price) => void,
-  setClientSetting: (string, boolean | string | Price) => void,
+  setClientSetting: (string, boolean | string | number | Price) => void,
   clearCache: () => Promise<any>,
   getThemes: () => void,
   daemonSettings: DaemonSettings,
   showNsfw: boolean,
   instantPurchaseEnabled: boolean,
   instantPurchaseMax: Price,
-  showUnavailable: boolean,
   currentTheme: string,
   themes: Array<string>,
   automaticDarkModeEnabled: boolean,
@@ -50,7 +49,6 @@ class SettingsPage extends React.PureComponent<Props, State> {
     (this: any).onKeyFeeChange = this.onKeyFeeChange.bind(this);
     (this: any).onInstantPurchaseMaxChange = this.onInstantPurchaseMaxChange.bind(this);
     (this: any).onShowNsfwChange = this.onShowNsfwChange.bind(this);
-    (this: any).onShowUnavailableChange = this.onShowUnavailableChange.bind(this);
     (this: any).onShareDataChange = this.onShareDataChange.bind(this);
     (this: any).onThemeChange = this.onThemeChange.bind(this);
     (this: any).onAutomaticDarkModeChange = this.onAutomaticDarkModeChange.bind(this);
@@ -113,10 +111,6 @@ class SettingsPage extends React.PureComponent<Props, State> {
     this.props.setClientSetting(settings.SHOW_NSFW, event.target.checked);
   }
 
-  onShowUnavailableChange(event: SyntheticInputEvent<*>) {
-    this.props.setClientSetting(settings.SHOW_UNAVAILABLE, event.target.checked);
-  }
-
   setDaemonSetting(name: string, value: boolean | string | Price) {
     this.props.setDaemonSetting(name, value);
   }
@@ -140,7 +134,6 @@ class SettingsPage extends React.PureComponent<Props, State> {
       showNsfw,
       instantPurchaseEnabled,
       instantPurchaseMax,
-      showUnavailable,
       currentTheme,
       themes,
       automaticDarkModeEnabled,
@@ -255,13 +248,6 @@ class SettingsPage extends React.PureComponent<Props, State> {
               />
               <FormField
                 type="checkbox"
-                name="show_unavailable"
-                onChange={this.onShowUnavailableChange}
-                checked={showUnavailable}
-                postfix={__('Show unavailable content in search results')}
-              />
-              <FormField
-                type="checkbox"
                 name="show_nsfw"
                 onChange={this.onShowNsfwChange}
                 checked={showNsfw}
@@ -273,20 +259,18 @@ class SettingsPage extends React.PureComponent<Props, State> {
             </section>
             <section className="card card--section">
               <div className="card__title">{__('Share Diagnostic Data')}</div>
-              <div className="card__content">
-                <FormField
-                  type="checkbox"
-                  name="share_usage_data"
-                  onChange={this.onShareDataChange}
-                  checked={daemonSettings.share_usage_data}
-                  postfix={__(
-                    'Help make LBRY better by contributing analytics and diagnostic data about my usage.'
-                  )}
-                  helper={__(
-                    'You will be ineligible to earn rewards while diagnostics are not being shared.'
-                  )}
-                />
-              </div>
+              <FormField
+                type="checkbox"
+                name="share_usage_data"
+                onChange={this.onShareDataChange}
+                checked={daemonSettings.share_usage_data}
+                postfix={__(
+                  'Help make LBRY better by contributing analytics and diagnostic data about my usage.'
+                )}
+                helper={__(
+                  'You will be ineligible to earn rewards while diagnostics are not being shared.'
+                )}
+              />
             </section>
             {
               <section className="card card--section">
@@ -317,7 +301,7 @@ class SettingsPage extends React.PureComponent<Props, State> {
             <section className="card card--section">
               <div className="card__title">{__('Application Cache')}</div>
               <span className="card__subtitle">
-                {__("This will delete your subscriptions, and clear the app's cache")}
+                {__('This will clear the application cache. Your wallet will not be affected.')}
               </span>
               <div className="card__content">
                 <Button

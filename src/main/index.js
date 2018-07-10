@@ -11,6 +11,7 @@ import isDev from 'electron-is-dev';
 import Daemon from './Daemon';
 import createTray from './createTray';
 import createWindow from './createWindow';
+import pjson from '../../package.json';
 
 autoUpdater.autoDownload = true;
 
@@ -82,7 +83,9 @@ app.on('ready', async () => {
 });
 
 app.on('activate', () => {
-  rendererWindow.show();
+  if (rendererWindow) {
+    rendererWindow.show();
+  }
 });
 
 app.on('will-quit', event => {
@@ -118,6 +121,10 @@ app.on('will-quit', event => {
   if (daemon) {
     daemon.quit();
     event.preventDefault();
+  }
+
+  if (rendererWindow) {
+    rendererWindow = null;
   }
 });
 
@@ -171,7 +178,7 @@ ipcMain.on('version-info-requested', () => {
     return ver.replace(/([^-])rc/, '$1-rc');
   }
 
-  const localVersion = app.getVersion();
+  const localVersion = pjson.version;
   const latestReleaseAPIURL = 'https://api.github.com/repos/lbryio/lbry-app/releases/latest';
   const opts = {
     headers: {

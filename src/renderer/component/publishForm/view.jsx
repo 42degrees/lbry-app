@@ -1,12 +1,13 @@
 // @flow
 import * as React from 'react';
-import { isNameValid, buildURI, regexInvalidURI } from 'lbry-redux';
+import { isNameValid, buildURI, regexInvalidURI, THUMBNAIL_STATUSES } from 'lbry-redux';
 import { Form, FormField, FormRow, FormFieldPrice, Submit } from 'component/common/form';
 import Button from 'component/button';
 import ChannelSection from 'component/selectChannel';
 import classnames from 'classnames';
 import type { PublishParams, UpdatePublishFormData } from 'redux/reducers/publish';
 import FileSelector from 'component/common/file-selector';
+import SelectThumbnail from 'component/selectThumbnail';
 import { COPYRIGHT, OTHER } from 'constants/licenses';
 import { CHANNEL_NEW, CHANNEL_ANONYMOUS, MINIMUM_PUBLISH_BID } from 'constants/claim';
 import * as icons from 'constants/icons';
@@ -21,6 +22,8 @@ type Props = {
   editingURI: ?string,
   title: ?string,
   thumbnail: ?string,
+  uploadThumbnailStatus: ?string,
+  thumbnailPath: ?string,
   description: ?string,
   language: string,
   nsfw: boolean,
@@ -46,10 +49,12 @@ type Props = {
   bidError: ?string,
   publishing: boolean,
   balance: number,
+  isStillEditing: boolean,
   clearPublish: () => void,
   resolveUri: string => void,
   scrollToTop: () => void,
-  prepareEdit: ({}, string) => void,
+  prepareEdit: ({}) => void,
+  resetThumbnailStatus: () => void,
 };
 
 class PublishForm extends React.PureComponent<Props> {
@@ -67,7 +72,13 @@ class PublishForm extends React.PureComponent<Props> {
     (this: any).getNewUri = this.getNewUri.bind(this);
   }
 
-  // Returns a new uri to be used in the form and begins to resolve that uri for bid help text
+  componentWillMount() {
+    const { isStillEditing, thumbnail } = this.props;
+    if (!isStillEditing || !thumbnail) {
+      this.props.resetThumbnailStatus();
+    }
+  }
+
   getNewUri(name: string, channel: string) {
     const { resolveUri } = this.props;
     // If they are midway through a channel creation, treat it as anonymous until it completes
@@ -141,13 +152,24 @@ class PublishForm extends React.PureComponent<Props> {
   }
 
   handleBidChange(bid: number) {
-    const { balance, updatePublishForm } = this.props;
+    const { balance, updatePublishForm, myClaimForUri } = this.props;
+
+    let previousBidAmount = 0;
+    if (myClaimForUri) {
+      previousBidAmount = myClaimForUri.amount;
+    }
+
+    const totalAvailableBidAmount = previousBidAmount + balance;
 
     let bidError;
-    if (balance <= bid) {
-      bidError = __('Not enough credits');
+    if (bid === 0) {
+      bidError = __('Deposit cannot be 0');
+    } else if (totalAvailableBidAmount === bid) {
+      bidError = __('Please decrease your deposit to account for transaction fees');
+    } else if (totalAvailableBidAmount < bid) {
+      bidError = __('Deposit cannot be higher than your balance');
     } else if (bid <= MINIMUM_PUBLISH_BID) {
-      bidError = __('Your bid must be higher');
+      bidError = __('Your deposit must be higher');
     }
 
     updatePublishForm({ bid, bidError });
@@ -169,24 +191,13 @@ class PublishForm extends React.PureComponent<Props> {
 
   handlePublish() {
     const {
-      publish,
       filePath,
-      bid,
-      title,
-      thumbnail,
-      description,
-      language,
-      nsfw,
+      copyrightNotice,
       licenseType,
       licenseUrl,
       otherLicenseDescription,
-      copyrightNotice,
-      name,
-      contentIsFree,
-      price,
-      uri,
       myClaimForUri,
-      channel,
+      publish,
     } = this.props;
 
     let publishingLicense;
@@ -205,21 +216,22 @@ class PublishForm extends React.PureComponent<Props> {
 
     const publishParams = {
       filePath,
-      bid,
-      title,
-      thumbnail,
-      description,
-      language,
-      nsfw,
+      bid: this.props.bid,
+      title: this.props.title,
+      thumbnail: this.props.thumbnail,
+      description: this.props.description,
+      language: this.props.language,
+      nsfw: this.props.nsfw,
       license: publishingLicense,
       licenseUrl: publishingLicenseUrl,
       otherLicenseDescription,
       copyrightNotice,
-      name,
-      contentIsFree,
-      price,
-      uri,
-      channel,
+      name: this.props.name,
+      contentIsFree: this.props.contentIsFree,
+      price: this.props.price,
+      uri: this.props.uri,
+      channel: this.props.channel,
+      isStillEditing: this.props.isStillEditing,
     };
 
     // Editing a claim
@@ -232,32 +244,54 @@ class PublishForm extends React.PureComponent<Props> {
   }
 
   checkIsFormValid() {
-    const { name, nameError, title, bid, bidError, tosAccepted } = this.props;
-    return name && !nameError && title && bid && !bidError && tosAccepted;
+    const {
+      name,
+      nameError,
+      title,
+      bid,
+      bidError,
+      tosAccepted,
+      editingURI,
+      isStillEditing,
+      filePath,
+    } = this.props;
+
+    // If they are editing, they don't need a new file chosen
+    const formValidLessFile = name && !nameError && title && bid && !bidError && tosAccepted;
+    return editingURI && !filePath ? isStillEditing && formValidLessFile : formValidLessFile;
   }
 
   renderFormErrors() {
-    const { name, nameError, title, bid, bidError, tosAccepted } = this.props;
+    const {
+      name,
+      nameError,
+      title,
+      bid,
+      bidError,
+      tosAccepted,
+      editingURI,
+      filePath,
+      isStillEditing,
+    } = this.props;
 
-    if (nameError || bidError) {
-      // There will be inline errors if either of these exist
-      // These are just extra help at the bottom of the screen
-      // There could be multiple bid errors, so just duplicate it at the bottom
-      return (
-        <div className="card__subtitle form-field__error">
-          {nameError && <div>{__('The URL you created is not valid.')}</div>}
-          {bidError && <div>{bidError}</div>}
-        </div>
-      );
-    }
+    const isFormValid = this.checkIsFormValid();
 
+    // These are extra help
+    // If there is an error it will be presented as an inline error as well
     return (
-      <div className="card__content card__subtitle card__subtitle--block form-field__error">
-        {!title && <div>{__('A title is required')}</div>}
-        {!name && <div>{__('A URL is required')}</div>}
-        {!bid && <div>{__('A bid amount is required')}</div>}
-        {!tosAccepted && <div>{__('You must agree to the terms of service')}</div>}
-      </div>
+      !isFormValid && (
+        <div className="card__content card__subtitle form-field__error">
+          {!title && <div>{__('A title is required')}</div>}
+          {!name && <div>{__('A URL is required')}</div>}
+          {name && nameError && <div>{__('The URL you created is not valid')}</div>}
+          {!bid && <div>{__('A bid amount is required')}</div>}
+          {!!bid && bidError && <div>{bidError}</div>}
+          {!tosAccepted && <div>{__('You must agree to the terms of service')}</div>}
+          {!!editingURI &&
+            !isStillEditing &&
+            !filePath && <div>{__('You need to reselect a file after changing the LBRY URL')}</div>}
+        </div>
+      )
     );
   }
 
@@ -267,6 +301,7 @@ class PublishForm extends React.PureComponent<Props> {
       editingURI,
       title,
       thumbnail,
+      uploadThumbnailStatus,
       description,
       language,
       nsfw,
@@ -289,19 +324,14 @@ class PublishForm extends React.PureComponent<Props> {
       bidError,
       publishing,
       clearPublish,
+      thumbnailPath,
+      resetThumbnailStatus,
+      isStillEditing,
     } = this.props;
 
     const formDisabled = (!filePath && !editingURI) || publishing;
     const formValid = this.checkIsFormValid();
 
-    // The user could be linked from lbry://@channel... or lbry://claim-name...
-    // If a channel exists, we need to make sure it is added to the uri for proper edit handling
-    // If this isn't an edit, just use the pregenerated uri
-    const simpleUri = myClaimForUri
-      ? buildURI({ channelName: myClaimForUri.channel_name, contentName: myClaimForUri.name })
-      : uri;
-
-    const isStillEditing = editingURI === simpleUri;
     let submitLabel;
     if (isStillEditing) {
       submitLabel = !publishing ? __('Edit') : __('Editing...');
@@ -311,10 +341,10 @@ class PublishForm extends React.PureComponent<Props> {
 
     return (
       <Form onSubmit={this.handlePublish}>
-        <section className={classnames('card card--section')}>
+        <section className={classnames('card card--section', { 'card--disabled': publishing })}>
           <div className="card__title">{__('Content')}</div>
           <div className="card__subtitle">
-            {editingURI ? __('Editing a claim') : __('What are you publishing?')}
+            {isStillEditing ? __('Editing a claim') : __('What are you publishing?')}
           </div>
           {(filePath || !!editingURI) && (
             <div className="card-media__internal-links">
@@ -327,7 +357,7 @@ class PublishForm extends React.PureComponent<Props> {
             </div>
           )}
           <FileSelector currentPath={filePath} onFileChosen={this.handleFileChange} />
-          {!!editingURI && (
+          {!!isStillEditing && (
             <p className="card__content card__subtitle">
               {__("If you don't choose a file, the file from your existing claim")}
               {` "${name}" `}
@@ -352,18 +382,6 @@ class PublishForm extends React.PureComponent<Props> {
             <FormRow padded>
               <FormField
                 stretch
-                type="text"
-                name="content_thumbnail"
-                label={__('Thumbnail')}
-                placeholder="http://spee.ch/mylogo"
-                value={thumbnail}
-                disabled={formDisabled}
-                onChange={e => updatePublishForm({ thumbnail: e.target.value })}
-              />
-            </FormRow>
-            <FormRow padded>
-              <FormField
-                stretch
                 type="markdown"
                 name="content_description"
                 label={__('Description')}
@@ -373,6 +391,30 @@ class PublishForm extends React.PureComponent<Props> {
                 onChange={text => updatePublishForm({ description: text })}
               />
             </FormRow>
+          </section>
+
+          <section className="card card--section">
+            <div className="card__title">{__('Thumbnail')}</div>
+            <div className="card__subtitle">
+              {uploadThumbnailStatus === THUMBNAIL_STATUSES.API_DOWN ? (
+                __('Enter a URL for your thumbnail.')
+              ) : (
+                <React.Fragment>
+                  {__(
+                    'Upload your thumbnail (.png/.jpg/.jpeg/.gif) to spee.ch, or enter the URL manually. Learn more about spee.ch '
+                  )}
+                  <Button button="link" label={__('here')} href="https://spee.ch/about" />.
+                </React.Fragment>
+              )}
+            </div>
+            <SelectThumbnail
+              thumbnailPath={thumbnailPath}
+              thumbnail={thumbnail}
+              uploadThumbnailStatus={uploadThumbnailStatus}
+              updatePublishForm={updatePublishForm}
+              formDisabled={formDisabled}
+              resetThumbnailStatus={resetThumbnailStatus}
+            />
           </section>
 
           <section className="card card--section">
@@ -447,7 +489,8 @@ class PublishForm extends React.PureComponent<Props> {
                   error={nameError}
                   helper={
                     <BidHelpText
-                      uri={simpleUri}
+                      isStillEditing={isStillEditing}
+                      uri={uri}
                       editingURI={editingURI}
                       isResolvingUri={isResolvingUri}
                       winningBidForClaimUri={winningBidForClaimUri}
@@ -554,7 +597,14 @@ class PublishForm extends React.PureComponent<Props> {
           </section>
 
           <div className="card__actions">
-            <Submit label={submitLabel} disabled={formDisabled || !formValid || publishing} />
+            <Submit
+              label={submitLabel}
+              disabled={
+                formDisabled ||
+                !formValid ||
+                uploadThumbnailStatus === THUMBNAIL_STATUSES.IN_PROGRESS
+              }
+            />
             <Button button="alt" onClick={this.handleCancelPublish} label={__('Cancel')} />
           </div>
           {!formDisabled && !formValid && this.renderFormErrors()}
