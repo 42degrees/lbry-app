@@ -3,8 +3,11 @@ import React from 'react';
 import Button from 'component/button';
 import * as icons from 'constants/icons';
 import ToolTip from 'component/common/tooltip';
+import analytics from 'analytics';
+import type { Claim } from 'types/claim';
 
 type Props = {
+  claim: Claim,
   uri: string,
   downloading: boolean,
   fileInfo: ?{
@@ -19,7 +22,7 @@ type Props = {
   restartDownload: (string, number) => void,
   openInShell: string => void,
   purchaseUri: string => void,
-  doPause: () => void,
+  pause: () => void,
 };
 
 class FileDownloadLink extends React.PureComponent<Props> {
@@ -47,13 +50,13 @@ class FileDownloadLink extends React.PureComponent<Props> {
       purchaseUri,
       costInfo,
       loading,
-      doPause,
+      pause,
     } = this.props;
 
     const openFile = () => {
       if (fileInfo) {
         openInShell(fileInfo.download_path);
-        doPause();
+        pause();
       }
     };
 
@@ -80,6 +83,12 @@ class FileDownloadLink extends React.PureComponent<Props> {
             iconColor="green"
             onClick={() => {
               purchaseUri(uri);
+
+              const { name, claim_id: claimId, nout, txid } = claim;
+              // // ideally outpoint would exist inside of claim information
+              // // we can use it after https://github.com/lbryio/lbry/issues/1306 is addressed
+              const outpoint = `${txid}:${nout}`;
+              analytics.apiLogView(`${name}#${claimId}`, outpoint, claimId);
             }}
           />
         </ToolTip>

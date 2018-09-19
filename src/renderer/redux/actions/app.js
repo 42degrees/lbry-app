@@ -17,8 +17,7 @@ import { doFetchRewardedContent } from 'redux/actions/content';
 import { doFetchDaemonSettings } from 'redux/actions/settings';
 import { doAuthNavigate } from 'redux/actions/navigation';
 import { doAuthenticate } from 'redux/actions/user';
-import { doPause } from 'redux/actions/media';
-import { doCheckSubscriptions } from 'redux/actions/subscriptions';
+import { doCheckSubscriptionsInit } from 'redux/actions/subscriptions';
 import {
   selectIsUpgradeSkipped,
   selectUpdateUrl,
@@ -27,6 +26,7 @@ import {
   selectUpgradeFilename,
   selectAutoUpdateDeclined,
   selectRemoteVersion,
+  selectUpgradeTimer,
 } from 'redux/selectors/app';
 import { lbrySettings as config } from 'package.json';
 
@@ -108,9 +108,6 @@ export function doDownloadUpgradeRequested() {
   return (dispatch, getState) => {
     const state = getState();
 
-    // Pause video if needed
-    dispatch(doPause());
-
     const autoUpdateDeclined = selectAutoUpdateDeclined(state);
 
     if (['win32', 'darwin'].includes(process.platform)) {
@@ -138,6 +135,19 @@ export function doDownloadUpgradeRequested() {
   };
 }
 
+export function doClearUpgradeTimer() {
+  return (dispatch, getState) => {
+    const state = getState();
+
+    if (selectUpgradeTimer(state)) {
+      clearInterval(selectUpgradeTimer(state));
+      dispatch({
+        type: ACTIONS.CLEAR_UPGRADE_TIMER,
+      });
+    }
+  };
+}
+
 export function doAutoUpdate() {
   return dispatch => {
     dispatch({
@@ -149,11 +159,15 @@ export function doAutoUpdate() {
         id: MODALS.AUTO_UPDATE_DOWNLOADED,
       })
     );
+
+    dispatch(doClearUpgradeTimer());
   };
 }
 
 export function doAutoUpdateDeclined() {
   return dispatch => {
+    dispatch(doClearUpgradeTimer());
+
     dispatch({
       type: ACTIONS.AUTO_UPDATE_DECLINED,
     });
@@ -253,22 +267,54 @@ export function doCheckUpgradeSubscribe() {
 export function doCheckDaemonVersion() {
   return dispatch => {
     Lbry.version().then(({ lbrynet_version: lbrynetVersion }) => {
-      if (config.lbrynetDaemonVersion === lbrynetVersion) {
-        dispatch({
+      // Avoid the incompatible daemon modal if running in dev mode
+      // Lets you run a different daemon than the one specified in package.json
+      if (isDev || config.lbrynetDaemonVersion === lbrynetVersion) {
+        return dispatch({
           type: ACTIONS.DAEMON_VERSION_MATCH,
         });
-        return;
       }
 
       dispatch({
         type: ACTIONS.DAEMON_VERSION_MISMATCH,
       });
-      dispatch(
+
+      return dispatch(
         doNotify({
           id: MODALS.INCOMPATIBLE_DAEMON,
         })
       );
     });
+  };
+}
+
+export function doNotifyEncryptWallet() {
+  return dispatch => {
+    dispatch(
+      doNotify({
+        id: MODALS.WALLET_ENCRYPT,
+      })
+    );
+  };
+}
+
+export function doNotifyDecryptWallet() {
+  return dispatch => {
+    dispatch(
+      doNotify({
+        id: MODALS.WALLET_DECRYPT,
+      })
+    );
+  };
+}
+
+export function doNotifyUnlockWallet() {
+  return dispatch => {
+    dispatch(
+      doNotify({
+        id: MODALS.WALLET_UNLOCK,
+      })
+    );
   };
 }
 
@@ -297,7 +343,7 @@ export function doDaemonReady() {
       dispatch(doCheckUpgradeAvailable());
     }
     dispatch(doCheckUpgradeSubscribe());
-    dispatch(doCheckSubscriptions());
+    dispatch(doCheckSubscriptionsInit());
   };
 }
 

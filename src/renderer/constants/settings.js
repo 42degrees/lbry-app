@@ -14,3 +14,5 @@ export const THEMES = 'themes';
 export const AUTOMATIC_DARK_MODE_ENABLED = 'automaticDarkModeEnabled';
 export const AUTOPLAY = 'autoplay';
 export const RESULT_COUNT = 'resultCount';
+export const OS_NOTIFICATIONS_ENABLED = 'osNotificationsEnabled';
+export const AUTO_DOWNLOAD = 'autoDownload';

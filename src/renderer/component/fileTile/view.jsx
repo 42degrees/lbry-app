@@ -1,6 +1,7 @@
 // @flow
 import * as React from 'react';
 import * as icons from 'constants/icons';
+import type { Claim, Metadata } from 'types/claim';
 import { normalizeURI, parseURI } from 'lbry-redux';
 import CardMedia from 'component/cardMedia';
 import TruncatedText from 'component/common/truncated-text';
@@ -8,9 +9,9 @@ import Icon from 'component/common/icon';
 import Button from 'component/button';
 import classnames from 'classnames';
 import FilePrice from 'component/filePrice';
+import UriIndicator from 'component/uriIndicator';
 
 type Props = {
-  fullWidth: boolean, // removes the max-width css
   showUri: boolean,
   showLocal: boolean,
   obscureNsfw: boolean,
@@ -19,27 +20,24 @@ type Props = {
   uri: string,
   isResolvingUri: boolean,
   rewardedContentClaimIds: Array<string>,
-  claim: ?{
-    name: string,
-    channel_name: string,
-    claim_id: string,
-  },
-  metadata: ?{
-    title: ?string,
-    thumbnail: ?string,
-  },
+  claim: ?Claim,
+  metadata: ?Metadata,
   resolveUri: string => void,
   navigate: (string, ?{}) => void,
   clearPublish: () => void,
   updatePublishForm: ({}) => void,
   hideNoResult: boolean, // don't show the tile if there is no claim at this uri
+  displayHiddenMessage?: boolean,
+  displayDescription?: boolean,
+  size: string,
 };
 
 class FileTile extends React.PureComponent<Props> {
   static defaultProps = {
     showUri: false,
     showLocal: false,
-    fullWidth: false,
+    displayDescription: true,
+    size: 'regular',
   };
 
   componentDidMount() {
@@ -62,13 +60,26 @@ class FileTile extends React.PureComponent<Props> {
       showUri,
       obscureNsfw,
       claimIsMine,
-      fullWidth,
       showLocal,
       isDownloaded,
       clearPublish,
       updatePublishForm,
       hideNoResult,
+      displayHiddenMessage,
+      displayDescription,
+      size,
     } = this.props;
+
+    const shouldHide = !claimIsMine && obscureNsfw && metadata && metadata.nsfw;
+    if (shouldHide) {
+      return displayHiddenMessage ? (
+        <span className="help">
+          {__('This file is hidden because it is marked NSFW. Update your')}{' '}
+          <Button button="link" navigate="/settings" label={__('content viewing preferences')} />{' '}
+          {__('to see it')}.
+        </span>
+      ) : null;
+    }
 
     const uri = normalizeURI(this.props.uri);
     const isClaimed = !!claim;
@@ -77,46 +88,72 @@ class FileTile extends React.PureComponent<Props> {
       isClaimed && metadata && metadata.title ? metadata.title : parseURI(uri).contentName;
     const thumbnail = metadata && metadata.thumbnail ? metadata.thumbnail : null;
     const isRewardContent = claim && rewardedContentClaimIds.includes(claim.claim_id);
-    const shouldObscureNsfw = obscureNsfw && metadata && metadata.nsfw && !claimIsMine;
-
     const onClick = () => navigate('/show', { uri });
 
     let name;
-    let channel;
     if (claim) {
       ({ name } = claim);
-      channel = claim.channel_name;
     }
 
     return !name && hideNoResult ? null : (
       <section
         className={classnames('file-tile card--link', {
-          'file-tile--fullwidth': fullWidth,
+          'file-tile--small': size === 'small',
+          'file-tile--large': size === 'large',
         })}
         onClick={onClick}
         onKeyUp={onClick}
         role="button"
         tabIndex="0"
       >
-        <CardMedia title={title || name} thumbnail={thumbnail} nsfw={shouldObscureNsfw} />
+        <CardMedia title={title || name} thumbnail={thumbnail} />
         <div className="file-tile__info">
-          {isResolvingUri && <div className="card__title--small">{__('Loading...')}</div>}
+          {isResolvingUri && (
+            <div
+              className={classnames({
+                'card__title--small': size !== 'large',
+                'card__title--large': size === 'large',
+              })}
+            >
+              {__('Loading...')}
+            </div>
+          )}
           {!isResolvingUri && (
             <React.Fragment>
-              <div className="card__title--small card__title--file">
-                <TruncatedText lines={2}>{title || name}</TruncatedText>
+              <div
+                className={classnames({
+                  'card__title--file': size === 'regular',
+                  'card__title--x-small': size === 'small',
+                  'card__title--large': size === 'large',
+                })}
+              >
+                <TruncatedText lines={size === 'small' ? 2 : 3}>{title || name}</TruncatedText>
               </div>
-              <div className="card__subtitle">
-                {showUri ? uri : channel || __('Anonymous')}
-                {isRewardContent && <Icon icon={icons.FEATURED} />}
+              <div
+                className={classnames('card__subtitle', {
+                  'card__subtitle--x-small': size === 'small',
+                  'card__subtitle--large': size === 'large',
+                })}
+              >
+                <span className="file-tile__channel">
+                  {showUri ? uri : <UriIndicator uri={uri} link />}
+                </span>
+              </div>
+              <div className="card__file-properties">
+                <FilePrice hideFree uri={uri} />
+                {isRewardContent && <Icon iconColor="red" icon={icons.FEATURED} />}
                 {showLocal && isDownloaded && <Icon icon={icons.LOCAL} />}
               </div>
-              <div className="card__subtext card__subtext--small">
-                <TruncatedText lines={3}>{description}</TruncatedText>
-              </div>
-              <div className="card__subtitle-price">
-                <FilePrice uri={uri} />
-              </div>
+              {displayDescription && (
+                <div
+                  className={classnames('card__subtext', {
+                    'card__subtext--small': size !== 'small',
+                    'card__subtext--large': size === 'large',
+                  })}
+                >
+                  <TruncatedText lines={size === 'large' ? 4 : 3}>{description}</TruncatedText>
+                </div>
+              )}
               {!name && (
                 <React.Fragment>
                   {__('This location is unused.')}{' '}

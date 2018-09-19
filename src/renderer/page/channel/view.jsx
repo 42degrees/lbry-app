@@ -7,6 +7,7 @@ import SubscribeButton from 'component/subscribeButton';
 import ViewOnWebButton from 'component/viewOnWebButton';
 import Page from 'component/page';
 import FileList from 'component/fileList';
+import HiddenNsfwClaims from 'component/hiddenNsfwClaims';
 import type { Claim } from 'types/claim';
 
 type Props = {
@@ -16,7 +17,8 @@ type Props = {
   fetching: boolean,
   params: { page: number },
   claim: Claim,
-  claimsInChannel: Array<{}>,
+  claimsInChannel: Array<Claim>,
+  channelIsMine: boolean,
   fetchClaims: (string, number) => void,
   fetchClaimCount: string => void,
   navigate: (string, {}) => void,
@@ -48,12 +50,13 @@ class ChannelPage extends React.PureComponent<Props> {
     this.props.navigate('/show', newParams);
   }
 
-  paginate(e, totalPages: number) {
+  paginate(e: SyntheticKeyboardEvent<*>, totalPages: number) {
     // Change page if enter was pressed, and the given page is between
     // the first and the last.
-    const pageFromInput = Number(e.target.value);
+    const pageFromInput = Number(e.currentTarget.value);
 
     if (
+      pageFromInput &&
       e.keyCode === 13 &&
       !Number.isNaN(pageFromInput) &&
       pageFromInput > 0 &&
@@ -64,25 +67,24 @@ class ChannelPage extends React.PureComponent<Props> {
   }
 
   render() {
-    const { fetching, claimsInChannel, claim, page, totalPages } = this.props;
+    const { uri, fetching, claimsInChannel, claim, page, totalPages, channelIsMine } = this.props;
     const { name, permanent_url: permanentUrl, claim_id: claimId } = claim;
     const currentPage = parseInt((page || 1) - 1, 10);
-    let contentList;
-    if (fetching) {
-      contentList = <BusyIndicator message={__('Fetching content')} />;
-    } else {
-      contentList =
-        claimsInChannel && claimsInChannel.length ? (
-          <FileList sortByHeight hideFilter fileInfos={claimsInChannel} />
-        ) : (
-          <span className="empty">{__('No content found.')}</span>
-        );
-    }
+
+    const contentList =
+      claimsInChannel && claimsInChannel.length ? (
+        <FileList sortByHeight hideFilter fileInfos={claimsInChannel} />
+      ) : (
+        !fetching && <span className="empty">{__('No content found.')}</span>
+      );
 
     return (
       <Page notContained>
         <section className="card__channel-info card__channel-info--large">
-          <h1>{name}</h1>
+          <h1>
+            {name}
+            {fetching && <BusyIndicator />}
+          </h1>
           <div className="card__actions card__actions--no-margin">
             <SubscribeButton uri={permanentUrl} channelName={name} />
             <ViewOnWebButton claimId={claimId} claimName={name} />
@@ -117,6 +119,7 @@ class ChannelPage extends React.PureComponent<Props> {
               />
             </FormRow>
           )}
+        {!channelIsMine && <HiddenNsfwClaims className="card__content help" uri={uri} />}
       </Page>
     );
   }

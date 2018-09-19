@@ -39,6 +39,7 @@
 
   /* Paragraphs */
   p {
+    margin: $spacing-vertical * 2/3 0;
     white-space: pre-line;
   }
 
@@ -63,6 +64,11 @@
     }
   }
 
+  /* Image */
+  img {
+    margin: 16px 0;
+  }
+
   /* Horizontal Rule */
   hr {
     border: 1px solid var(--color-divider);
@@ -80,9 +86,31 @@
   }
 
   a {
-      font-size: 1em;
-      color: var(--btn-external-color);
+    font-size: 1em;
+    color: var(--btn-external-color);
+    display: inline-block;
+  }
+
+  /* Lists */
+  ul,
+  ol {
+    margin-bottom: 2em;
+  }
+
+  ul {
+    list-style: initial;
+  }
+
+  li {
+    margin-left: 2em;
+    p {
       display: inline-block;
+    }
+  }
+
+  ol > li,
+  ul > li {
+    list-style-position: outside;
   }
 }
 

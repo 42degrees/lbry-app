@@ -1,8 +1,8 @@
+// @flow
 import * as NOTIFICATION_TYPES from 'constants/notification_types';
 import { ipcRenderer } from 'electron';
 import Lbryio from 'lbryio';
 import { doAlertError } from 'redux/actions/app';
-import { doClaimEligiblePurchaseRewards } from 'redux/actions/rewards';
 import { doNavigate } from 'redux/actions/navigation';
 import {
   setSubscriptionLatest,
@@ -28,7 +28,7 @@ import {
   MODALS,
   doNotify,
 } from 'lbry-redux';
-import { makeSelectClientSetting } from 'redux/selectors/settings';
+import { makeSelectClientSetting, selectosNotificationsEnabled } from 'redux/selectors/settings';
 import setBadge from 'util/setBadge';
 import setProgressBar from 'util/setProgressBar';
 import analytics from 'analytics';
@@ -111,6 +111,7 @@ export function doUpdateLoadStatus(uri, outpoint) {
           dispatch(doUpdateLoadStatus(uri, outpoint));
         }, DOWNLOAD_POLL_INTERVAL);
       } else if (fileInfo.completed) {
+        const state = getState();
         // TODO this isn't going to get called if they reload the client before
         // the download finished
         dispatch({
@@ -122,13 +123,13 @@ export function doUpdateLoadStatus(uri, outpoint) {
           },
         });
 
-        const badgeNumber = selectBadgeNumber(getState());
+        const badgeNumber = selectBadgeNumber(state);
         setBadge(badgeNumber === 0 ? '' : `${badgeNumber}`);
 
-        const totalProgress = selectTotalDownloadProgress(getState());
+        const totalProgress = selectTotalDownloadProgress(state);
         setProgressBar(totalProgress);
 
-        const notifications = selectNotifications(getState());
+        const notifications = selectNotifications(state);
         if (notifications[uri] && notifications[uri].type === NOTIFICATION_TYPES.DOWNLOADING) {
           const count = Object.keys(notifications).reduce(
             (acc, cur) =>
@@ -139,27 +140,33 @@ export function doUpdateLoadStatus(uri, outpoint) {
             0
           );
 
-          const notif = new window.Notification(notifications[uri].subscription.channelName, {
-            body: `Posted ${fileInfo.metadata.title}${
-              count > 1 && count < 10 ? ` and ${count - 1} other new items` : ''
-            }${count > 9 ? ' and 9+ other new items' : ''}`,
-            silent: false,
-          });
-          notif.onclick = () => {
+          if (selectosNotificationsEnabled(state)) {
+            const notif = new window.Notification(notifications[uri].subscription.channelName, {
+              body: `Posted ${fileInfo.metadata.title}${
+                count > 1 && count < 10 ? ` and ${count - 1} other new items` : ''
+              }${count > 9 ? ' and 9+ other new items' : ''}`,
+              silent: false,
+            });
+            notif.onclick = () => {
+              dispatch(
+                doNavigate('/show', {
+                  uri,
+                })
+              );
+            };
+          }
+          if (state.navigation.currentPath !== '/subscriptions') {
             dispatch(
-              doNavigate('/show', {
+              setSubscriptionNotification(
+                notifications[uri].subscription,
                 uri,
-              })
+                NOTIFICATION_TYPES.DOWNLOADED
+              )
             );
-          };
-          dispatch(
-            setSubscriptionNotification(
-              notifications[uri].subscription,
-              uri,
-              NOTIFICATION_TYPES.DOWNLOADED
-            )
-          );
+          }
         } else {
+          // If notifications are disabled(false) just return
+          if (!selectosNotificationsEnabled(getState())) return;
           const notif = new window.Notification('LBRY Download Complete', {
             body: fileInfo.metadata.title,
             silent: false,
@@ -171,7 +178,7 @@ export function doUpdateLoadStatus(uri, outpoint) {
       } else {
         // ready to play
         const { total_bytes: totalBytes, written_bytes: writtenBytes } = fileInfo;
-        const progress = writtenBytes / totalBytes * 100;
+        const progress = (writtenBytes / totalBytes) * 100;
 
         dispatch({
           type: ACTIONS.DOWNLOADING_PROGRESSED,
@@ -224,14 +231,6 @@ export function doStartDownload(uri, outpoint) {
 export function doDownloadFile(uri, streamInfo) {
   return dispatch => {
     dispatch(doStartDownload(uri, streamInfo.outpoint));
-
-    analytics.apiLogView(
-      `${streamInfo.claim_name}#${streamInfo.claim_id}`,
-      streamInfo.outpoint,
-      streamInfo.claim_id
-    );
-
-    dispatch(doClaimEligiblePurchaseRewards());
   };
 }
 
@@ -244,7 +243,30 @@ export function doSetPlayingUri(uri) {
   };
 }
 
-export function doLoadVideo(uri) {
+function handleLoadVideoError(uri, errorType = '') {
+  return (dispatch, getState) => {
+    // suppress error when another media is playing
+    const { playingUri } = getState().content;
+    if (playingUri && playingUri === uri) {
+      dispatch({
+        type: ACTIONS.LOADING_VIDEO_FAILED,
+        data: { uri },
+      });
+      dispatch(doSetPlayingUri(null));
+      if (errorType === 'timeout') {
+        doNotify({ id: MODALS.FILE_TIMEOUT }, { uri });
+      } else {
+        dispatch(
+          doAlertError(
+            `Failed to download ${uri}, please try again. If this problem persists, visit https://lbry.io/faq/support for support.`
+          )
+        );
+      }
+    }
+  };
+}
+
+export function doLoadVideo(uri, shouldRecordViewEvent) {
   return dispatch => {
     dispatch({
       type: ACTIONS.LOADING_VIDEO_STARTED,
@@ -259,33 +281,26 @@ export function doLoadVideo(uri) {
           streamInfo === null || typeof streamInfo !== 'object' || streamInfo.error === 'Timeout';
 
         if (timeout) {
-          dispatch(doSetPlayingUri(null));
-          dispatch({
-            type: ACTIONS.LOADING_VIDEO_FAILED,
-            data: { uri },
-          });
-
-          dispatch(doNotify({ id: MODALS.FILE_TIMEOUT }, { uri }));
+          dispatch(handleLoadVideoError(uri, 'timeout'));
         } else {
           dispatch(doDownloadFile(uri, streamInfo));
+
+          if (shouldRecordViewEvent) {
+            analytics.apiLogView(
+              `${streamInfo.claim_name}#${streamInfo.claim_id}`,
+              streamInfo.outpoint,
+              streamInfo.claim_id
+            );
+          }
         }
       })
       .catch(() => {
-        dispatch(doSetPlayingUri(null));
-        dispatch({
-          type: ACTIONS.LOADING_VIDEO_FAILED,
-          data: { uri },
-        });
-        dispatch(
-          doAlertError(
-            `Failed to download ${uri}, please try again. If this problem persists, visit https://lbry.io/faq/support for support.`
-          )
-        );
+        dispatch(handleLoadVideoError(uri));
       });
   };
 }
 
-export function doPurchaseUri(uri, specificCostInfo) {
+export function doPurchaseUri(uri, specificCostInfo, shouldRecordViewEvent) {
   return (dispatch, getState) => {
     const state = getState();
     const balance = selectBalance(state);
@@ -297,7 +312,7 @@ export function doPurchaseUri(uri, specificCostInfo) {
       if (cost > 0 && (!instantPurchaseMax || cost > instantPurchaseMax)) {
         dispatch(doNotify({ id: MODALS.AFFIRM_PURCHASE }, { uri }));
       } else {
-        dispatch(doLoadVideo(uri));
+        dispatch(doLoadVideo(uri, shouldRecordViewEvent));
       }
     }
 
@@ -306,7 +321,7 @@ export function doPurchaseUri(uri, specificCostInfo) {
       // If written_bytes is false that means the user has deleted/moved the
       // file manually on their file system, so we need to dispatch a
       // doLoadVideo action to reconstruct the file from the blobs
-      if (!fileInfo.written_bytes) dispatch(doLoadVideo(uri));
+      if (!fileInfo.written_bytes) dispatch(doLoadVideo(uri, shouldRecordViewEvent));
 
       Promise.resolve();
       return;
@@ -372,17 +387,18 @@ export function doFetchClaimsByChannel(uri, page) {
             buildURI({ contentName: latest.name, claimId: latest.claim_id }, false)
           )
         );
-        const notifications = selectNotifications(getState());
-        const newNotifications = {};
-        Object.keys(notifications).forEach(cur => {
-          if (
-            notifications[cur].subscription.channelName !== latest.channel_name ||
-            notifications[cur].type === NOTIFICATION_TYPES.DOWNLOADING
-          ) {
-            newNotifications[cur] = { ...notifications[cur] };
-          }
-        });
-        dispatch(setSubscriptionNotifications(newNotifications));
+        // commented out as a note for @sean, notification will be clared individually
+        // const notifications = selectNotifications(getState());
+        // const newNotifications = {};
+        // Object.keys(notifications).forEach(cur => {
+        //   if (
+        //     notifications[cur].subscription.channelName !== latest.channel_name ||
+        //     notifications[cur].type === NOTIFICATION_TYPES.DOWNLOADING
+        //   ) {
+        //     newNotifications[cur] = { ...notifications[cur] };
+        //   }
+        // });
+        // dispatch(setSubscriptionNotifications(newNotifications));
       }
 
       dispatch({
@@ -487,4 +503,46 @@ export function doPublish(params) {
 
       Lbry.publishDeprecated(params, null, success, failure);
     });
+}
+
+export function savePosition(claimId: string, outpoint: string, position: number) {
+  return dispatch => {
+    dispatch({
+      type: ACTIONS.SET_CONTENT_POSITION,
+      data: { claimId, outpoint, position },
+    });
+  };
+}
+
+export function doSetContentHistoryItem(uri: string) {
+  return dispatch => {
+    dispatch({
+      type: ACTIONS.SET_CONTENT_LAST_VIEWED,
+      data: { uri, lastViewed: Date.now() },
+    });
+  };
+}
+
+export function doClearContentHistoryUri(uri: string) {
+  return dispatch => {
+    dispatch({
+      type: ACTIONS.CLEAR_CONTENT_HISTORY_URI,
+      data: { uri },
+    });
+  };
+}
+
+export function doClearContentHistoryAll() {
+  return dispatch => {
+    dispatch({ type: ACTIONS.CLEAR_CONTENT_HISTORY_ALL });
+  };
+}
+
+export function doSetHistoryPage(page) {
+  return dispatch => {
+    dispatch({
+      type: ACTIONS.SET_CONTENT_HISTORY_PAGE,
+      data: { page },
+    });
+  };
 }

@@ -1,12 +1,13 @@
 // @flow
 import * as React from 'react';
 import * as settings from 'constants/settings';
-import { isURIValid, normalizeURI } from 'lbry-redux';
+import { isURIValid, normalizeURI, parseURI } from 'lbry-redux';
 import { FormField, FormRow } from 'component/common/form';
 import FileTile from 'component/fileTile';
+import ChannelTile from 'component/channelTile';
 import FileListSearch from 'component/fileListSearch';
-import ToolTip from 'component/common/tooltip';
 import Page from 'component/page';
+import ToolTip from 'component/common/tooltip';
 import Icon from 'component/common/icon';
 import * as icons from 'constants/icons';
 
@@ -35,9 +36,38 @@ class SearchPage extends React.PureComponent<Props> {
 
   render() {
     const { query, resultCount } = this.props;
+
+    const isValid = isURIValid(query);
+
+    let uri;
+    let isChannel;
+    if (isValid) {
+      uri = normalizeURI(query);
+      ({ isChannel } = parseURI(uri));
+    }
+
     return (
-      <Page>
-        <React.Fragment>
+      <Page noPadding>
+        {query &&
+          isValid && (
+            <div className="search__top">
+              <div className="file-list__header">
+                {`lbry://${query}`}
+                <ToolTip
+                  icon
+                  body={__('This is the resolution of a LBRY URL and not controlled by LBRY Inc.')}
+                >
+                  <Icon icon={icons.HELP} />
+                </ToolTip>
+              </div>
+              {isChannel ? (
+                <ChannelTile size="large" uri={uri} />
+              ) : (
+                <FileTile size="large" displayHiddenMessage uri={uri} />
+              )}
+            </div>
+          )}
+        <div className="search__content">
           <FormRow alignRight>
             <FormField
               type="number"
@@ -61,23 +91,9 @@ class SearchPage extends React.PureComponent<Props> {
               // />
             }
           </FormRow>
-        </React.Fragment>
-        {isURIValid(query) && (
-          <React.Fragment>
-            <div className="file-list__header">
-              {__('Exact URL')}
-              <ToolTip
-                icon
-                body={__('This is the resolution of a LBRY URL and not controlled by LBRY Inc.')}
-              >
-                <Icon icon={icons.HELP} />
-              </ToolTip>
-            </div>
-            <FileTile fullWidth uri={normalizeURI(query)} showUri />
-          </React.Fragment>
-        )}
-        <FileListSearch query={query} />
-        <div className="help">{__('These search results are provided by LBRY, Inc.')}</div>
+          <FileListSearch query={query} />
+          <div className="help">{__('These search results are provided by LBRY, Inc.')}</div>
+        </div>
       </Page>
     );
   }

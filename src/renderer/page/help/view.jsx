@@ -65,9 +65,9 @@ class HelpPage extends React.PureComponent<Props, State> {
         versionInfo: info,
       });
     });
-    Lbry.status({ session_status: true }).then(info => {
+    Lbry.status().then(info => {
       this.setState({
-        lbryId: info.lbry_id,
+        lbryId: info.installation_id,
       });
     });
 
@@ -217,7 +217,14 @@ class HelpPage extends React.PureComponent<Props, State> {
                   <td>{__('Connected Email')}</td>
                   <td>
                     {user && user.primary_email ? (
-                      user.primary_email
+                      <React.Fragment>
+                        {user.primary_email}{' '}
+                        <Button
+                          button="link"
+                          href={`http://lbry.io/list/edit/${accessToken}`}
+                          label={__('Update mailing preferences')}
+                        />
+                      </React.Fragment>
                     ) : (
                       <React.Fragment>
                         <span className="empty">{__('none')} </span>

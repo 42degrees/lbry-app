@@ -153,10 +153,10 @@ dd {
 
 p {
   font-family: 'metropolis-medium';
-  padding: $spacing-vertical * 1/3 0;
 }
 
 .page {
+  z-index: 0;
   position: absolute;
   top: var(--header-height);
   left: 0;
@@ -185,6 +185,7 @@ p {
 .main {
   padding: $spacing-width $spacing-width;
   margin: auto;
+  overflow: hidden;
 }
 
 .main--contained {
@@ -195,12 +196,19 @@ p {
 .main--no-padding {
   padding-left: 0;
   padding-right: 0;
+  padding-top: 0;
   margin: 0;
 }
 
 .main--extra-padding {
   padding-left: 100px;
   padding-right: 100px;
+}
+
+.main--for-content {
+  padding: $spacing-width * 2/3;
+  display: flex;
+  justify-content: center;
 }
 
 .page__header {
@@ -245,15 +253,12 @@ p {
 
 /* Custom text selection */
 *::selection {
-  background: var(--color-primary-light);
+  background: var(--text-selection-bg);
   color: var(--text-selection-color);
 }
 
 .credit-amount {
-  border-radius: 5px;
-  font-family: 'metropolis-bold';
   font-size: 10px;
-  padding: 5px;
   white-space: nowrap;
 }
 
@@ -262,30 +267,37 @@ p {
   font-size: 36px;
 }
 
+.credit-amount--file-page {
+  font-family: 'metropolis-bold';
+  border-radius: 5px;
+  padding: 5px;
+}
+
 .credit-amount--free {
-  color: var(--color-dark-blue);
-  background-color: var(--color-secondary);
+  color: var(--color-credit-free);
+
+  &.credit-amount--file-page {
+    color: var(--color-dark-blue);
+    background-color: var(--color-secondary);
+  }
 }
 
 .credit-amount--cost {
-  color: var(--color-black);
-  background-color: var(--color-yellow);
+  color: var(--color-credit-price);
+
+  &.credit-amount--file-page {
+    color: var(--color-black);
+    background-color: var(--color-yellow);
+  }
 }
 
-.credit-amount--plain {
+.credit-amount--inherit {
   background-color: inherit;
   color: inherit;
   font-weight: inherit;
   font-size: inherit;
-}
-
-.credit-amount.credit-amount--no-style {
-  padding: 0;
-  font-size: inherit;
-  font-weight: inherit;
-  color: inherit;
-  background-color: transparent;
   font-family: 'metropolis-medium';
+  padding: 0;
 }
 
 .divider__horizontal {
@@ -300,6 +312,14 @@ p {
 .disabled {
   pointer-events: none;
   opacity: 0.5;
+}
+
+.column {
+  display: flex;
+
+  .column__item:not(:first-child) {
+    padding-left: $spacing-width * 2/3;
+  }
 }
 
 .truncated-text {
@@ -360,4 +380,13 @@ p {
   &.qr-code--top-padding {
     margin-top: $spacing-vertical * 2/3;
   }
+}
+
+.error-text {
+  color: var(--color-error);
+}
+
+.thumbnail-preview {
+  height: var(--thumbnail-preview-height);
+  width: var(--thumbnail-preview-width);
 }

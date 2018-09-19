@@ -1,7 +1,6 @@
 :root {
-
+    
   /* Colors */
-
   --color-divider: #53637C;;
   --color-canvas: transparent;
   --color-help: #8696AF;
@@ -10,14 +9,14 @@
   --color-bg: var(--color-blue-grey);
   --color-bg-alt: #2D3D56;
   --color-placeholder: var(--color-bg-alt);
+  --color-credit-free: var(--color-secondary);
 
   /* Text */
-  --text-color: #FFF;
+  --text-color: var(--color-white);
   --text-help-color: var(--color-help);
-  --text-selection-color: #fff;
 
    /* Form */
-   --form-label-color: #FFF;
+   --form-label-color: var(--color-white);
 
   /* Input */
   --input-bg: transparent;
@@ -63,6 +62,7 @@
   --search-active-bg-color: #13233C;
   --search-active-shadow: 0 6px 9px -2px var(--color-grey--dark);
   --search-modal-input-height: 70px;
+  --search-exact-result: #4C5D77;
 
   /* Nav */
   --nav-color: #44548F;
@@ -90,7 +90,7 @@
   /* Scrollbar */
   --scrollbar-thumb-bg: rgba(255, 255, 255, 0.20);
   --scrollbar-thumb-hover-bg: #8696AF;
-  
+
   /* Shadows */
   --box-shadow-header: 0px 6px 20px 1px rgba(0, 0, 0, 0.2);
 }

@@ -2,10 +2,9 @@
 import * as React from 'react';
 import classnames from 'classnames';
 import Spinner from 'component/spinner';
-import { isShowingChildren } from 'util/dom';
 
 // time in ms to wait to show loading spinner
-const LOADER_TIMEOUT = 1500;
+const LOADER_TIMEOUT = 1000;
 
 type Props = {
   children: React.Node | Array<React.Node>,
@@ -13,6 +12,7 @@ type Props = {
   noPadding: ?boolean,
   extraPadding: ?boolean,
   notContained: ?boolean, // No max-width, but keep the padding
+  forContent: ?boolean,
   loading: ?boolean,
 };
 
@@ -21,23 +21,6 @@ type State = {
 };
 
 class Page extends React.PureComponent<Props, State> {
-  static getDerivedStateFromProps(nextProps: Props, prevState: State) {
-    const { children } = nextProps;
-    const { showLoader } = prevState;
-
-    // If we aren't showing the loader, don't bother updating
-    if (!showLoader) {
-      return null;
-    }
-
-    if (isShowingChildren(children)) {
-      return {
-        showLoader: false,
-      };
-    }
-    return null;
-  }
-
   constructor() {
     super();
 
@@ -49,34 +32,64 @@ class Page extends React.PureComponent<Props, State> {
   }
 
   componentDidMount() {
-    const { children } = this.props;
+    const { loading } = this.props;
+    if (loading) {
+      this.beginLoadingTimeout();
+    }
+  }
 
-    if (!isShowingChildren(children))
-      this.loaderTimeout = setTimeout(() => {
-        this.setState({ showLoader: true });
-      }, LOADER_TIMEOUT);
+  componentDidUpdate(prevProps: Props) {
+    const { loading } = this.props;
+    const { showLoader } = this.state;
+
+    if (!this.loaderTimeout && !prevProps.loading && loading) {
+      this.beginLoadingTimeout();
+    } else if (!loading && this.loaderTimeout) {
+      clearTimeout(this.loaderTimeout);
+
+      if (showLoader) {
+        this.removeLoader();
+      }
+    }
   }
 
   componentWillUnmount() {
-    this.loaderTimeout = null;
+    if (this.loaderTimeout) {
+      clearTimeout(this.loaderTimeout);
+    }
+  }
+
+  beginLoadingTimeout() {
+    this.loaderTimeout = setTimeout(() => {
+      this.setState({ showLoader: true });
+    }, LOADER_TIMEOUT);
+  }
+
+  removeLoader() {
+    this.setState({ showLoader: false });
   }
 
   loaderTimeout: ?TimeoutID;
 
   render() {
-    const { pageTitle, children, noPadding, extraPadding, notContained, loading } = this.props;
+    const {
+      pageTitle,
+      children,
+      noPadding,
+      extraPadding,
+      notContained,
+      loading,
+      forContent,
+    } = this.props;
     const { showLoader } = this.state;
-
-    // We don't want to show the loading spinner right away if it will only flash on the
-    // screen for a short time, wait until we know it will be loading for a bit before showing it
-    const shouldShowLoader = !isShowingChildren(children) && showLoader;
 
     return (
       <main
         className={classnames('main', {
-          'main--contained': !notContained && !noPadding && !extraPadding,
+          'main--contained': !notContained && !noPadding && !extraPadding && !forContent,
           'main--no-padding': noPadding,
           'main--extra-padding': extraPadding,
+          'main--for-content': forContent,
         })}
       >
         {pageTitle && (
@@ -85,7 +98,7 @@ class Page extends React.PureComponent<Props, State> {
           </div>
         )}
         {!loading && children}
-        {shouldShowLoader && (
+        {showLoader && (
           <div className="page__empty">
             <Spinner />
           </div>

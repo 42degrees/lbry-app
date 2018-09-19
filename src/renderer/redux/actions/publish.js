@@ -14,6 +14,8 @@ import type {
   UpdatePublishFormAction,
   PublishParams,
 } from 'redux/reducers/publish';
+import { selectosNotificationsEnabled } from 'redux/selectors/settings';
+import { doNavigate } from 'redux/actions/navigation';
 import fs from 'fs';
 import path from 'path';
 
@@ -120,7 +122,7 @@ export const doUploadThumbnail = (filePath: string, nsfw: boolean) => (dispatch:
                 thumbnail: `${json.data.url}${fileExt}`,
               },
             })
-          : uploadError('Upload failed')
+          : uploadError(json.message)
     )
     .catch(err => uploadError(err.message));
 };
@@ -274,6 +276,21 @@ export const doCheckPendingPublishes = () => (dispatch: Dispatch, getState: GetS
           });
 
           delete pendingPublishMap[claim.name];
+          if (selectosNotificationsEnabled(getState())) {
+            const notif = new window.Notification('LBRY Publish Complete', {
+              body: `${claim.value.stream.metadata.title} has been published to lbry://${
+                claim.name
+              }. Click here to view it`,
+              silent: false,
+            });
+            notif.onclick = () => {
+              dispatch(
+                doNavigate('/show', {
+                  uri: claim.permanent_url,
+                })
+              );
+            };
+          }
         }
       });
 

@@ -1,6 +1,7 @@
 // @flow
 import React from 'react';
 import classnames from 'classnames';
+import analytics from 'analytics';
 import type { Claim } from 'types/claim';
 import LoadingScreen from 'component/common/loading-screen';
 import Player from './internal/player';
@@ -17,6 +18,9 @@ type Props = {
     download_path: string,
     completed: boolean,
   },
+  fileInfoErrors: ?{
+    [string]: boolean,
+  },
   metadata: ?{
     nsfw: boolean,
     thumbnail: string,
@@ -30,43 +34,83 @@ type Props = {
   volume: number,
   claim: Claim,
   uri: string,
-  doPlay: () => void,
-  doPause: () => void,
-  savePosition: (string, number) => void,
-  mediaPaused: boolean,
-  mediaPosition: ?number,
+  savePosition: (string, string, number) => void,
+  position: ?number,
   className: ?string,
   obscureNsfw: boolean,
   play: string => void,
   searchBarFocused: boolean,
   mediaType: string,
+  claimRewards: () => void,
 };
 
 class FileViewer extends React.PureComponent<Props> {
   constructor() {
     super();
-
     (this: any).playContent = this.playContent.bind(this);
     (this: any).handleKeyDown = this.handleKeyDown.bind(this);
+    (this: any).logTimeToStart = this.logTimeToStart.bind(this);
+    (this: any).startedPlayingCb = undefined;
+
+    // Don't add these variables to state because we don't need to re-render when their values change
+    (this: any).startTime = undefined;
+    (this: any).playTime = undefined;
   }
 
   componentDidMount() {
+    const { fileInfo } = this.props;
+    if (!fileInfo) {
+      this.startedPlayingCb = this.logTimeToStart;
+    }
+
     this.handleAutoplay(this.props);
     window.addEventListener('keydown', this.handleKeyDown);
   }
 
-  componentWillReceiveProps(nextProps: Props) {
+  componentDidUpdate(prev: Props) {
+    const { fileInfo } = this.props;
+
+    if (this.props.uri !== prev.uri) {
+      // User just directly navigated to another piece of content
+      if (this.startTime && !this.playTime) {
+        // They started playing a file but it didn't start streaming
+        // Fire the analytics event with the previous file
+        this.fireAnalyticsEvent(prev.claim);
+      }
+
+      this.startTime = null;
+      this.playTime = null;
+
+      // If this new file is already downloaded, remove the startedPlayingCallback
+      if (fileInfo && this.startedPlayingCb) {
+        this.startedPlayingCb = null;
+      } else if (!fileInfo && !this.startedPlayingCb) {
+        this.startedPlayingCb = this.logTimeToStart;
+      }
+    }
+
     if (
-      this.props.autoplay !== nextProps.autoplay ||
-      this.props.fileInfo !== nextProps.fileInfo ||
-      this.props.isDownloading !== nextProps.isDownloading ||
-      this.props.playingUri !== nextProps.playingUri
+      this.props.autoplay !== prev.autoplay ||
+      this.props.fileInfo !== prev.fileInfo ||
+      this.props.isDownloading !== prev.isDownloading ||
+      this.props.playingUri !== prev.playingUri
     ) {
-      this.handleAutoplay(nextProps);
+      // suppress autoplay after download error
+      if (!(this.props.uri in this.props.fileInfoErrors)) {
+        this.handleAutoplay(this.props);
+      }
     }
   }
 
   componentWillUnmount() {
+    const { claim } = this.props;
+
+    if (this.startTime && !this.playTime) {
+      // The user is navigating away before the file started playing, or a play time was never set
+      // Currently will not be set for files that don't use render-media
+      this.fireAnalyticsEvent(claim);
+    }
+
     this.props.cancelPlay();
     window.removeEventListener('keydown', this.handleKeyDown);
   }
@@ -80,14 +124,14 @@ class FileViewer extends React.PureComponent<Props> {
   }
 
   handleAutoplay = (props: Props) => {
-    const { autoplay, playingUri, fileInfo, costInfo, isDownloading, uri, play, metadata } = props;
+    const { autoplay, playingUri, fileInfo, costInfo, isDownloading, uri, metadata } = props;
 
     const playable = autoplay && playingUri !== uri && metadata && !metadata.nsfw;
 
     if (playable && costInfo && costInfo.cost === 0 && !fileInfo && !isDownloading) {
-      play(uri);
+      this.playContent();
     } else if (playable && fileInfo && fileInfo.blobs_completed > 0) {
-      play(uri);
+      this.playContent();
     }
   };
 
@@ -100,9 +144,48 @@ class FileViewer extends React.PureComponent<Props> {
   }
 
   playContent() {
-    const { play, uri } = this.props;
+    const { play, uri, fileInfo, isDownloading, isLoading } = this.props;
+
+    if (fileInfo || isDownloading || isLoading) {
+      // User may have pressed download before clicking play
+      this.startedPlayingCb = null;
+    }
+
+    if (this.startedPlayingCb) {
+      this.startTime = Date.now();
+    }
+
     play(uri);
   }
+
+  logTimeToStart() {
+    const { claim } = this.props;
+
+    if (this.startTime) {
+      this.playTime = Date.now();
+      this.fireAnalyticsEvent(claim, this.startTime, this.playTime);
+    }
+  }
+
+  fireAnalyticsEvent(claim, startTime, playTime) {
+    const { claimRewards } = this.props;
+    const { name, claim_id: claimId, txid, nout } = claim;
+
+    // ideally outpoint would exist inside of claim information
+    // we can use it after https://github.com/lbryio/lbry/issues/1306 is addressed
+    const outpoint = `${txid}:${nout}`;
+
+    let timeToStart;
+    if (playTime && startTime) {
+      timeToStart = playTime - startTime;
+    }
+
+    analytics.apiLogView(`${name}#${claimId}`, outpoint, claimId, timeToStart, claimRewards);
+  }
+
+  startedPlayingCb: ?() => void;
+  startTime: ?number;
+  playTime: ?number;
 
   render() {
     const {
@@ -116,11 +199,8 @@ class FileViewer extends React.PureComponent<Props> {
       volume,
       claim,
       uri,
-      doPlay,
-      doPause,
       savePosition,
-      mediaPaused,
-      mediaPosition,
+      position,
       className,
       obscureNsfw,
       mediaType,
@@ -157,7 +237,7 @@ class FileViewer extends React.PureComponent<Props> {
               </div>
             ) : (
               <Player
-                filename={fileInfo.file_name}
+                fileName={fileInfo.file_name}
                 poster={poster}
                 downloadPath={fileInfo.download_path}
                 mediaType={mediaType}
@@ -165,13 +245,12 @@ class FileViewer extends React.PureComponent<Props> {
                 downloadCompleted={fileInfo.completed}
                 changeVolume={changeVolume}
                 volume={volume}
-                doPlay={doPlay}
-                doPause={doPause}
                 savePosition={savePosition}
                 claim={claim}
                 uri={uri}
-                paused={mediaPaused}
-                position={mediaPosition}
+                position={position}
+                startedPlayingCb={this.startedPlayingCb}
+                playingUri={playingUri}
               />
             )}
           </div>

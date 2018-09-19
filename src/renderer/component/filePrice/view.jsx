@@ -9,6 +9,11 @@ type Props = {
   uri: string,
   fetching: boolean,
   claim: ?{},
+  // below props are just passed to <CreditAmount />
+  filePage?: boolean,
+  inheritStyle?: boolean,
+  showLBC?: boolean,
+  hideFree?: boolean, // hide the file price if it's free
 };
 
 class FilePrice extends React.PureComponent<Props> {
@@ -33,13 +38,20 @@ class FilePrice extends React.PureComponent<Props> {
   };
 
   render() {
-    const { costInfo, showFullPrice } = this.props;
+    const { costInfo, showFullPrice, filePage, inheritStyle, showLBC, hideFree } = this.props;
+
+    if (costInfo && !costInfo.cost && hideFree) {
+      return null;
+    }
 
     return costInfo ? (
       <CreditAmount
+        showFree
+        filePage={filePage}
+        inheritStyle={inheritStyle}
+        showLBC={showLBC}
         amount={costInfo.cost}
         isEstimate={!costInfo.includesData}
-        showFree
         showFullPrice={showFullPrice}
       />
     ) : null;

@@ -53,7 +53,7 @@ type Props = {
   clearPublish: () => void,
   resolveUri: string => void,
   scrollToTop: () => void,
-  prepareEdit: ({}) => void,
+  prepareEdit: ({ }) => void,
   resetThumbnailStatus: () => void,
 };
 
@@ -73,8 +73,8 @@ class PublishForm extends React.PureComponent<Props> {
   }
 
   componentWillMount() {
-    const { isStillEditing, thumbnail } = this.props;
-    if (!isStillEditing || !thumbnail) {
+    const { thumbnail } = this.props;
+    if (!thumbnail) {
       this.props.resetThumbnailStatus();
     }
   }
@@ -254,10 +254,18 @@ class PublishForm extends React.PureComponent<Props> {
       editingURI,
       isStillEditing,
       filePath,
+      uploadThumbnailStatus,
     } = this.props;
 
     // If they are editing, they don't need a new file chosen
-    const formValidLessFile = name && !nameError && title && bid && !bidError && tosAccepted;
+    const formValidLessFile =
+      name &&
+      !nameError &&
+      title &&
+      bid &&
+      !bidError &&
+      tosAccepted &&
+      !(uploadThumbnailStatus === THUMBNAIL_STATUSES.IN_PROGRESS);
     return editingURI && !filePath ? isStillEditing && formValidLessFile : formValidLessFile;
   }
 
@@ -272,6 +280,7 @@ class PublishForm extends React.PureComponent<Props> {
       editingURI,
       filePath,
       isStillEditing,
+      uploadThumbnailStatus,
     } = this.props;
 
     const isFormValid = this.checkIsFormValid();
@@ -286,6 +295,8 @@ class PublishForm extends React.PureComponent<Props> {
           {name && nameError && <div>{__('The URL you created is not valid')}</div>}
           {!bid && <div>{__('A bid amount is required')}</div>}
           {!!bid && bidError && <div>{bidError}</div>}
+          {uploadThumbnailStatus === THUMBNAIL_STATUSES.IN_PROGRESS
+          && <div>{__('Please wait for thumbnail to finish uploading')}</div>}
           {!tosAccepted && <div>{__('You must agree to the terms of service')}</div>}
           {!!editingURI &&
             !isStillEditing &&
@@ -345,6 +356,13 @@ class PublishForm extends React.PureComponent<Props> {
           <div className="card__title">{__('Content')}</div>
           <div className="card__subtitle">
             {isStillEditing ? __('Editing a claim') : __('What are you publishing?')}
+            {' '}{__(
+              'Read our'
+            )}{' '}
+            <Button button="link" label={__('FAQ')} href="https://lbry.io/faq/how-to-publish" />{' '}
+            {__(
+              'to learn more.'
+            )}
           </div>
           {(filePath || !!editingURI) && (
             <div className="card-media__internal-links">
@@ -356,14 +374,17 @@ class PublishForm extends React.PureComponent<Props> {
               />
             </div>
           )}
-          <FileSelector currentPath={filePath} onFileChosen={this.handleFileChange} />
-          {!!isStillEditing && (
-            <p className="card__content card__subtitle">
-              {__("If you don't choose a file, the file from your existing claim")}
-              {` "${name}" `}
-              {__('will be used.')}
-            </p>
-          )}
+          <div className="card__content">
+            <FileSelector currentPath={filePath} onFileChosen={this.handleFileChange} />
+            {!!isStillEditing &&
+              name && (
+                <p className="card__content card__subtitle">
+                  {__("If you don't choose a file, the file from your existing claim")}
+                  {` "${name}" `}
+                  {__('will be used.')}
+                </p>
+              )}
+          </div>
         </section>
         <div className={classnames({ 'card--disabled': formDisabled })}>
           <section className="card card--section">
@@ -399,13 +420,12 @@ class PublishForm extends React.PureComponent<Props> {
               {uploadThumbnailStatus === THUMBNAIL_STATUSES.API_DOWN ? (
                 __('Enter a URL for your thumbnail.')
               ) : (
-                <React.Fragment>
-                  {__(
-                    'Upload your thumbnail (.png/.jpg/.jpeg/.gif) to spee.ch, or enter the URL manually. Learn more about spee.ch '
-                  )}
-                  <Button button="link" label={__('here')} href="https://spee.ch/about" />.
-                </React.Fragment>
-              )}
+                  <React.Fragment>
+                    {__('Upload your thumbnail (.png/.jpg/.jpeg/.gif) to')}{' '}
+                    <Button button="link" label={__('spee.ch')} href="https://spee.ch/about" />.{' '}
+                    {__('Recommended size: 800x450 (16:9)')}
+                  </React.Fragment>
+                )}
             </div>
             <SelectThumbnail
               thumbnailPath={thumbnailPath}
@@ -480,7 +500,7 @@ class PublishForm extends React.PureComponent<Props> {
                     !channel || channel === CHANNEL_ANONYMOUS || channel === CHANNEL_NEW
                       ? ''
                       : `${channel}/`
-                  }`}
+                    }`}
                   type="text"
                   name="content_name"
                   placeholder="myname"

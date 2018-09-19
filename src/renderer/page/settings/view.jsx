@@ -31,6 +31,11 @@ type Props = {
   themes: Array<string>,
   automaticDarkModeEnabled: boolean,
   autoplay: boolean,
+  autoDownload: boolean,
+  encryptWallet: () => void,
+  decryptWallet: () => void,
+  walletEncrypted: boolean,
+  osNotificationsEnabled: boolean,
 };
 
 type State = {
@@ -54,11 +59,16 @@ class SettingsPage extends React.PureComponent<Props, State> {
     (this: any).onAutomaticDarkModeChange = this.onAutomaticDarkModeChange.bind(this);
     (this: any).onAutoplayChange = this.onAutoplayChange.bind(this);
     (this: any).clearCache = this.clearCache.bind(this);
+    (this: any).onDesktopNotificationsChange = this.onDesktopNotificationsChange.bind(this);
+    (this: any).onAutoDownloadChange = this.onAutoDownloadChange.bind(this);
     // (this: any).onLanguageChange = this.onLanguageChange.bind(this)
   }
 
   componentDidMount() {
-    this.props.getThemes();
+    const { props } = this;
+
+    props.getThemes();
+    props.updateWalletStatus();
   }
 
   onRunOnStartChange(event: SyntheticInputEvent<*>) {
@@ -111,8 +121,21 @@ class SettingsPage extends React.PureComponent<Props, State> {
     this.props.setClientSetting(settings.SHOW_NSFW, event.target.checked);
   }
 
+  onAutoDownloadChange(event: SyntheticInputEvent<*>) {
+    this.props.setClientSetting(settings.AUTO_DOWNLOAD, event.target.checked);
+  }
+
+  onChangeEncryptWallet() {
+    const { props } = this;
+    props.walletEncrypted ? props.decryptWallet() : props.encryptWallet();
+  }
+
   setDaemonSetting(name: string, value: boolean | string | Price) {
     this.props.setDaemonSetting(name, value);
+  }
+
+  onDesktopNotificationsChange(event: SyntheticInputEvent<*>) {
+    this.props.setClientSetting(settings.OS_NOTIFICATIONS_ENABLED, event.target.checked);
   }
 
   clearCache() {
@@ -138,6 +161,9 @@ class SettingsPage extends React.PureComponent<Props, State> {
       themes,
       automaticDarkModeEnabled,
       autoplay,
+      walletEncrypted,
+      osNotificationsEnabled,
+      autoDownload,
     } = this.props;
 
     const noDaemonSettings = !daemonSettings || Object.keys(daemonSettings).length === 0;
@@ -248,6 +274,13 @@ class SettingsPage extends React.PureComponent<Props, State> {
               />
               <FormField
                 type="checkbox"
+                name="auto_download"
+                onChange={this.onAutoDownloadChange}
+                checked={autoDownload}
+                postfix={__('Automatically download new content from your subscriptions')}
+              />
+              <FormField
+                type="checkbox"
                 name="show_nsfw"
                 onChange={this.onShowNsfwChange}
                 checked={showNsfw}
@@ -257,6 +290,18 @@ class SettingsPage extends React.PureComponent<Props, State> {
                 )}
               />
             </section>
+
+            <section className="card card--section">
+              <div className="card__title">{__('Notifications')}</div>
+              <FormField
+                type="checkbox"
+                name="desktopNotification"
+                onChange={this.onDesktopNotificationsChange}
+                checked={osNotificationsEnabled}
+                postfix={__('Show Desktop Notifications')}
+              />
+            </section>
+
             <section className="card card--section">
               <div className="card__title">{__('Share Diagnostic Data')}</div>
               <FormField
@@ -272,32 +317,52 @@ class SettingsPage extends React.PureComponent<Props, State> {
                 )}
               />
             </section>
-            {
-              <section className="card card--section">
-                <div className="card__title">{__('Theme')}</div>
-                <FormField
-                  name="theme_select"
-                  type="select"
-                  onChange={this.onThemeChange}
-                  value={currentTheme}
-                  disabled={automaticDarkModeEnabled}
-                >
-                  {themes.map(theme => (
-                    <option key={theme} value={theme}>
-                      {theme}
-                    </option>
-                  ))}
-                </FormField>
-                <FormField
-                  type="checkbox"
-                  name="automatic_dark_mode"
-                  onChange={e => this.onAutomaticDarkModeChange(e.target.checked)}
-                  checked={automaticDarkModeEnabled}
-                  disabled={isDarkModeEnabled}
-                  postfix={__('Automatic dark mode (9pm to 8am)')}
-                />
-              </section>
-            }
+            <section className="card card--section">
+              <div className="card__title">{__('Theme')}</div>
+              <FormField
+                name="theme_select"
+                type="select"
+                onChange={this.onThemeChange}
+                value={currentTheme}
+                disabled={automaticDarkModeEnabled}
+              >
+                {themes.map(theme => (
+                  <option key={theme} value={theme}>
+                    {theme}
+                  </option>
+                ))}
+              </FormField>
+              <FormField
+                type="checkbox"
+                name="automatic_dark_mode"
+                onChange={e => this.onAutomaticDarkModeChange(e.target.checked)}
+                checked={automaticDarkModeEnabled}
+                disabled={isDarkModeEnabled}
+                postfix={__('Automatic dark mode (9pm to 8am)')}
+              />
+            </section>
+            <section className="card card--section">
+              <div className="card__title">{__('Wallet Security')}</div>
+              <FormField
+                type="checkbox"
+                name="encrypt_wallet"
+                onChange={e => this.onChangeEncryptWallet(e)}
+                checked={walletEncrypted}
+                postfix={__('Encrypt my wallet with a custom password.')}
+                helper={
+                  <React.Fragment>
+                    {__(
+                      'Secure your local wallet data with a custom password. Lost passwords cannot be recovered.'
+                    )}{' '}
+                    <Button
+                      button="link"
+                      label={__('Learn more')}
+                      href="https://lbry.io/faq/wallet-encryption"
+                    />.
+                  </React.Fragment>
+                }
+              />
+            </section>
             <section className="card card--section">
               <div className="card__title">{__('Application Cache')}</div>
               <span className="card__subtitle">
